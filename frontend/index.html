@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoSave - Products</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://kit.fontawesome.com/377a1ca7db.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>GeoSave</h1>
+        <nav>
+            <a href="login.html" class="login">Login</a>
+            <a href="register.html" class="register">Register</a>
+            <a href="add-product.html">Add Product</a>
+            <a href="account.html">My account</a>
+        </nav>
+    </header>
+    <main>
+        <h2 id="Available">Available Products</h2>
+        <div>
+            <div id="adsContainer">
+                <!-- الإعلانات ستضاف هنا ديناميكيًا -->
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2024 GeoSave. جميع الحقوق محفوظة.</p>
+    </footer>
+    <script>
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                fetchProducts();
+                //loadListings();
+            });
+        } else {
+            alert('الرجاء تمكين الوصول إلى الموقع لعرض الإعلانات القريبة.');
+        }
+
+        // تحقق من وجود adminID
+        const adminID = localStorage.getItem('adminID');
+        
+        if (adminID) {
+            // إخفاء الروابط إذا كان adminID موجودًا
+            document.querySelector('.login').style.display = 'none';
+            document.querySelector('.register').style.display = 'none';
+        } 
+
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

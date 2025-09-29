@@ -1,0 +1,303 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+header {
+    background: #333;
+    color: #fff;
+    padding: 1rem;
+    text-align: center;
+}
+
+header nav a {
+    color: #fff;
+    margin: 0 1rem;
+    text-decoration: none;
+}
+
+#Available{
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    padding-bottom: 2rem;
+}
+
+#product-list{
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-align: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+main {
+    padding: 2rem;
+}
+
+form {
+    max-width: 500px;
+    margin: auto;
+    background: #fff;
+    padding: 1rem;
+    border-radius: 5px;
+    padding-right: inherit;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+input, textarea, button {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    justify-content: center;
+
+}
+
+button {
+    background: #333;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    justify-content: center;
+}
+
+button:hover {
+    background: #555;
+}
+
+
+/* تصميم قائمة الإعلانات */
+#adsContainer {
+
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    /* justify-content: center; */
+}
+
+.ad {
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    width: 200px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.active {
+    z-index: -10;
+}
+
+.del{
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    cursor: pointer;
+    z-index: 100;
+    font-size: 16px;
+    width: 40px;
+    height: 40px;
+    background-color: red;
+}
+
+.text {
+    text-align: left;
+}
+
+/* النافذة المنبثقة */
+.popup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.popup-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    width: 80%;
+    max-width: 400px;
+}
+
+.img_product{
+    
+    width: 200px;
+    height: 200px; /* ارتفاع ثابت */
+    object-fit: contain; /* منع التشوه */
+    border-radius: 5px;
+
+}
+
+#booking-list{
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-align: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.whatsapp-button {
+    background: #25D366;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: block;
+    border-radius: 4px;
+    text-decoration: none;
+    margin-bottom: 4px;
+    transition: background-color 0.3s ease;
+
+}
+
+.whatsapp-button:hover {
+    background-color: #1da851; /* لون أغمق عند التحويم */
+}
+
+footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 1rem 0;
+    bottom: 0;
+    width: 100%;
+    /* position: fixed; */
+
+}
+
+.bookings, .products{
+    position: relative;
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-align: center;
+    /* display: flex; */
+    flex-wrap: wrap;
+    gap: 20px;
+    
+
+}
+
+.hold_product{
+    position: relative;
+}
+
+.isConfirmed {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 66%); /* خلفية خفيفة */
+    color: white;
+    height: 100%;
+    width: 100%;
+}
+
+.isConfirmed::before {
+    content: "Reserved";
+    position: absolute;
+    top: 10px; /* المسافة من الزاوية */
+    left: 10px; /* المسافة من الزاوية */
+    color: white;
+    font-size: 14px; /* حجم النص */
+    font-weight: bold;
+    padding: 5px 10px; /* إضافة مسافات داخلية */
+    background: linear-gradient(45deg, #ff6f61, #ff914d); /* تأثير تدرج لوني */
+    border-radius: 5px; /* زوايا مستديرة للنص */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* إضافة ظل لجعل النص أكثر بروزاً */
+}
+
+
+/* From Uiverse.io by jdm-encompass */ 
+.spinner {
+    background-image: linear-gradient(rgb(44, 155, 60) 35%, rgb(79, 202, 81));
+    width: 20px;
+    height: 20px;
+    animation: spinning82341 1.7s linear infinite;
+    text-align: center;
+    border-radius: 50px;
+    filter: blur(1px);
+    box-shadow: 0px -5px 20px 0px rgb(18, 182, 81), 0px 5px 20px 0px rgb(14, 186, 45);
+    position: relative;
+  }
+  
+  .spinner1 {
+    background-color: rgb(39, 159, 43);
+    width: 20px;
+    height: 20px;
+    border-radius: 50px;
+    filter: blur(10px);
+    animation: flickeringGlow 2s linear infinite;
+  }
+  
+  @keyframes spinning82341 {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  @keyframes flickeringGlow {
+    0% {
+      box-shadow: 0px -10px 40px 0px rgb(115, 244, 110), 0px 10px 40px 0px rgb(87, 244, 87), 0px 0px 20px 0px white;
+    }
+    
+    /* ...rest of the keyframes remain the same... */
+  }
+ 
+  
+
+/* تصميم الحاوية معلومات الحساب */
+.account {
+    display: flex;
+    gap: 20px; /* مسافة بين المربعات */
+    justify-content: start; /* لمحاذاة المربعات في البداية */
+    align-items: center; /* لمحاذاة العناصر رأسيًا */
+    font-family: Arial, sans-serif;
+  }
+  
+  /* تصميم كل مربع */
+  .box {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #ddd; /* إطار حول المربع */
+    border-radius: 8px; /* زوايا دائرية */
+    background-color: #ffffff; /* خلفية خفيفة */
+    gap: 13px; /* مسافة بين الأيقونة والنص */
+  }
+  
+  /* تنسيق النص */
+  .name, .email {
+    font-size: 14px;
+    color: #000000;
+  }
+  
+  /* تنسيق الأيقونات */
+  .box i {
+    color: #333;
+    font-size: 16px;
+  }
