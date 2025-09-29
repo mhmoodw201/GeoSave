@@ -238,20 +238,8 @@ Listing.find({
 
 ---
 
-## Contributing
+## contact
 
-1. Fork the repo
-2. Create a feature branch (`feature/xyz`)
-3. Commit with clear messages and open a pull request
-4. Add tests for new logic where appropriate
-
-Please open issues for bugs or feature requests.
-
----
-
-## License & contact
-
-* **License:** MIT (or choose appropriate license)
 * **Author / Contact:** Mahmoud Khalid Abuzaid — [mhmoodw201@gmail.com](mailto:mhmoodw201@gmail.com)
 
 ---
