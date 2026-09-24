@@ -1,59 +1,100 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoSave - Products</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://kit.fontawesome.com/377a1ca7db.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="GeoSave — منصة تأجير محلية تعرض لك المنتجات المتاحة للإيجار بالقرب من موقعك.">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>GeoSave — استأجر بالقرب منك</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/styles.css">
+    <script type="module" src="/assets/js/pages/home.js"></script>
 </head>
-<body>
-    <header>
-        <h1>GeoSave</h1>
-        <nav>
-            <a href="login.html" class="login">Login</a>
-            <a href="register.html" class="register">Register</a>
-            <a href="add-product.html">Add Product</a>
-            <a href="account.html">My account</a>
-        </nav>
-    </header>
-    <main>
-        <h2 id="Available">Available Products</h2>
-        <div>
-            <div id="adsContainer">
-                <!-- الإعلانات ستضاف هنا ديناميكيًا -->
-            </div>
+<body class="page-home">
+    <a class="skip-link" href="#main">تخطَّ إلى المحتوى</a>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="/" aria-label="GeoSave — الصفحة الرئيسية">
+                <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#pin"/></svg></span>
+                <span class="brand-name">Geo<span>Save</span></span>
+            </a>
+            <button class="icon-btn nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="فتح القائمة">
+                <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#menu"/></svg>
+            </button>
+            <nav id="site-nav" class="site-nav" aria-label="التنقل الرئيسي"></nav>
         </div>
+    </header>
+
+    <main id="main">
+        <section class="hero">
+            <div class="container hero-inner">
+                <div class="hero-text">
+                    <span class="eyebrow"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#shield"/></svg> تأجير آمن داخل حيّك</span>
+                    <h1>استأجر ما تحتاجه <span class="highlight">بالقرب منك</span></h1>
+                    <p class="lead">اكتشف أدوات ومعدات ومنتجات متاحة للإيجار من أشخاص حولك، واحجزها وتواصل مع المالك مباشرة عبر واتساب.</p>
+                    <div class="hero-actions">
+                        <a class="btn btn-accent btn-lg" id="hero-cta" href="/add-product.html"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#plus"/></svg> اعرض منتجك للإيجار</a>
+                        <a class="btn btn-glass btn-lg" href="#results"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#search"/></svg> تصفح القريب منك</a>
+                    </div>
+                </div>
+                <ul class="hero-steps" aria-label="كيف يعمل GeoSave">
+                    <li><span class="step-icon"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#locate"/></svg></span><div><strong>حدّد موقعك</strong><p>نعرض لك الإعلانات القريبة فقط.</p></div></li>
+                    <li><span class="step-icon"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#calendar"/></svg></span><div><strong>احجز بضغطة</strong><p>يُحجز المنتج لك فوراً.</p></div></li>
+                    <li><span class="step-icon"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#chat"/></svg></span><div><strong>تواصل مباشرة</strong><p>رقم المالك يظهر لك بعد الحجز.</p></div></li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="container section" id="results" aria-labelledby="results-title">
+            <div class="section-head">
+                <div>
+                    <h2 id="results-title">المنتجات المتاحة حولك</h2>
+                    <p id="results-meta" class="muted" aria-live="polite"></p>
+                </div>
+                <div id="location-status" class="location-status is-loading" aria-live="polite"></div>
+            </div>
+
+            <form id="search-form" class="toolbar" role="search">
+                <label class="field-inline search-field">
+                    <span class="sr-only">بحث بالاسم</span>
+                    <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#search"/></svg>
+                    <input type="search" name="q" maxlength="50" placeholder="ابحث عن منتج… (مثال: خيمة، دريل)" autocomplete="off">
+                </label>
+                <label class="field-inline select-field">
+                    <span class="field-label">النطاق</span>
+                    <select name="radius">
+                        <option value="1">1 كم</option>
+                        <option value="3">3 كم</option>
+                        <option value="5" selected>5 كم</option>
+                        <option value="10">10 كم</option>
+                        <option value="25">25 كم</option>
+                        <option value="50">50 كم</option>
+                    </select>
+                </label>
+                <label class="switch">
+                    <input type="checkbox" name="available" value="true">
+                    <span class="switch-track" aria-hidden="true"></span>
+                    <span>المتاح فقط</span>
+                </label>
+            </form>
+
+            <div id="product-grid" class="grid" aria-live="polite"></div>
+            <div class="center">
+                <button id="load-more" type="button" class="btn btn-secondary" hidden>عرض المزيد</button>
+            </div>
+        </section>
     </main>
-    <footer>
-        <p>&copy; 2024 GeoSave. جميع الحقوق محفوظة.</p>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <a class="brand brand-sm" href="/">
+                <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#pin"/></svg></span>
+                <span class="brand-name">Geo<span>Save</span></span>
+            </a>
+            <p class="muted">استأجر ما تحتاجه من جيرانك، ووفّر أكثر.</p>
+            <p class="muted small">&copy; <span data-year>2026</span> GeoSave. جميع الحقوق محفوظة.</p>
+        </div>
     </footer>
-    <script>
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-                fetchProducts();
-                //loadListings();
-            });
-        } else {
-            alert('الرجاء تمكين الوصول إلى الموقع لعرض الإعلانات القريبة.');
-        }
-
-        // تحقق من وجود adminID
-        const adminID = localStorage.getItem('adminID');
-        
-        if (adminID) {
-            // إخفاء الروابط إذا كان adminID موجودًا
-            document.querySelector('.login').style.display = 'none';
-            document.querySelector('.register').style.display = 'none';
-        } 
-
-    </script>
-    <script src="script.js"></script>
 </body>
 </html>

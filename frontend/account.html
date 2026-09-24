@@ -1,57 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Account</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://kit.fontawesome.com/377a1ca7db.js" crossorigin="anonymous"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="GeoSave — منصة تأجير محلية تعرض لك المنتجات المتاحة للإيجار بالقرب من موقعك.">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>حسابي — GeoSave</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/styles.css">
+    <script type="module" src="/assets/js/pages/account.js"></script>
 </head>
-<body>
-    <header>
-        <h1>GeoSave</h1>
-        <nav>
-            <a href="index.html">Home</a>
-            <a id="logout">Logout</a>
-        </nav>
+<body class="page-account">
+    <a class="skip-link" href="#main">تخطَّ إلى المحتوى</a>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="/" aria-label="GeoSave — الصفحة الرئيسية">
+                <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#pin"/></svg></span>
+                <span class="brand-name">Geo<span>Save</span></span>
+            </a>
+            <button class="icon-btn nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="فتح القائمة">
+                <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#menu"/></svg>
+            </button>
+            <nav id="site-nav" class="site-nav" aria-label="التنقل الرئيسي"></nav>
+        </div>
     </header>
-    <main>
-        <section>
-            <h2>My Account</h2>
-            <div class="account">
 
-                <div class="box">
-                  <i class="fa-solid fa-user"></i>
-                  <p class="name">Name</p>
+    <main id="main" class="container section">
+        <div id="page-content" hidden>
+            <section class="card profile" aria-label="الملف الشخصي">
+                <div id="profile-avatar" class="avatar" aria-hidden="true"></div>
+                <div class="profile-info">
+                    <h1 id="profile-name"></h1>
+                    <p class="muted"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#mail"/></svg> <span id="profile-email" dir="ltr"></span></p>
+                    <span id="profile-role" class="badge badge-accent" hidden>مشرف</span>
                 </div>
+                <div class="profile-stats">
+                    <div><strong id="booking-count">–</strong><span>حجوزات</span></div>
+                    <div><strong id="product-count">–</strong><span>إعلانات</span></div>
+                </div>
+                <a class="btn btn-primary" href="/add-product.html"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#plus"/></svg> إعلان جديد</a>
+            </section>
 
-                <div class="box">
-                  <i class="fa-solid fa-envelope"></i>
-                  <p class="email">Email</p>
-                </div>
+            <div class="tabs" role="tablist" aria-label="أقسام الحساب">
+                <button type="button" role="tab" id="tab-bookings" aria-controls="panel-bookings" aria-selected="true"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#bookmark"/></svg> حجوزاتي</button>
+                <button type="button" role="tab" id="tab-products" aria-controls="panel-products" aria-selected="false" tabindex="-1"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#box"/></svg> إعلاناتي</button>
             </div>
-              
-        </section>
 
-        <section id="my-bookings">
-            <h2>My Bookings</h2>
-            <div id="booking-list"></div>
-        </section>
-
-        <section id="my-products">
-            <h2>My Products</h2>
-            <div id="product-list"></div>
-        </section>
+            <section id="panel-bookings" role="tabpanel" aria-labelledby="tab-bookings" tabindex="0">
+                <div id="booking-list" class="list"></div>
+            </section>
+            <section id="panel-products" role="tabpanel" aria-labelledby="tab-products" tabindex="0" hidden>
+                <div id="product-list" class="list"></div>
+            </section>
+        </div>
     </main>
-    <footer>
-        <p>&copy; 2024 GeoSave. جميع الحقوق محفوظة.</p>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <a class="brand brand-sm" href="/">
+                <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#pin"/></svg></span>
+                <span class="brand-name">Geo<span>Save</span></span>
+            </a>
+            <p class="muted">استأجر ما تحتاجه من جيرانك، ووفّر أكثر.</p>
+            <p class="muted small">&copy; <span data-year>2026</span> GeoSave. جميع الحقوق محفوظة.</p>
+        </div>
     </footer>
-    <script src="script.js"></script>
-    <script>
-        fetchMyProducts();
-        fetchMyBookings();
-    </script>
 </body>
 </html>

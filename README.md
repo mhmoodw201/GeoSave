@@ -1,247 +1,121 @@
 # GeoSave
 
-**GeoSave** — Location-aware rental marketplace that helps users find nearby rental items using geofencing (default radius: **5 km**).
-Built as a full-stack proof-of-concept to demonstrate responsive UI, geolocation search, bookings, admin moderation, and efficient backend design for location-based services.
+**GeoSave** is a location-aware rental marketplace: people list items they rent out, and others find, book and contact owners nearby. Listings are filtered by distance from the visitor (default radius **5 km**) using MongoDB geospatial queries.
+
+> The web interface is in Arabic (RTL) and supports light and dark mode automatically.
 
 ---
 
-## Key features
+## Features
 
-* Search and browse rental listings filtered by proximity (geofencing).
-* Responsive web UI (works on desktop and mobile browsers).
-* Secure image upload with server-side compression.
-* Backend APIs for listings, search, bookings and admin moderation.
-* Admin panel for reviewing and approving listings.
-* Direct booking/contact via WhatsApp integration.
-* Performance: MongoDB indexing and query optimization for geospatial queries.
-* Basic input validation, logging and error handling.
+* Nearby search using a MongoDB `2dsphere` index and `$geoNear` (radius 0.1–50 km, text search, "available only" filter, pagination).
+* Accounts with secure sessions (JWT in an `HttpOnly`, `SameSite=Strict` cookie).
+* Listings with image upload. Every image is validated, resized, stripped of metadata (including GPS/EXIF) and re-encoded to WebP.
+* Atomic booking that prevents double-booking. The owner's WhatsApp number is only shown to the person who booked.
+* Account page: my bookings (contact via WhatsApp, cancel) and my listings (end a booking, delete).
+* Admin role: admins can delete any listing or booking.
+* Responsive, accessible UI (keyboard navigation, focus states, ARIA, reduced motion), with no third-party scripts.
 
 ---
 
 ## Tech stack
 
-* **Frontend:** HTML, CSS, JavaScript, Axios (vanilla / lightweight stack for the POC)
-* **Backend:** Node.js, Express
-* **File handling:** Multer (uploads), Sharp (image resizing/compression)
-* **Database:** MongoDB (with `2dsphere` geospatial index)
-* **APIs / libraries:** Geolocation API (browser), dotenv, Joi (optional validation), bcrypt (if auth added)
-* **Dev tools:** nodemon (dev), PM2 or Docker for production
+* **Frontend:** HTML, CSS, JavaScript (ES modules), served by the backend from the same origin
+* **Backend:** Node.js (≥ 20.9), Express 4, Mongoose 8
+* **Security:** helmet (CSP, HSTS, …), express-rate-limit, bcryptjs, jsonwebtoken, cookie-parser
+* **Uploads:** multer (in-memory) + sharp
+
+```
+frontend/            static site (index, login, register, add-product, account)
+  assets/css/        design system
+  assets/js/         api client, UI helpers, session, per-page scripts
+backend/
+  server.js          entry point (DB connection + HTTP server)
+  app.js             Express app and middleware stack
+  config.js          environment-driven configuration
+  middleware/        auth, security (CSP, CORS, CSRF, rate limits), error handler
+  models/            User, Product, Booking
+  routes/            /api/auth, /api/products, /api/bookings
+  scripts/           make-admin, migrate-v2
+  tests/             API and security tests (node:test + supertest)
+```
 
 ---
 
-## Architecture overview
-
-```
-[Browser] <--> [Frontend (HTML/JS)] <--> [Express API] <--> [MongoDB]
-                                   \
-                                    -> [Image storage (local / cloud)]
-                                    -> [WhatsApp link / notification]
-```
-
-Search uses MongoDB geospatial queries (e.g., `$geoNear` / `$nearSphere`) on a `location` field indexed with `2dsphere` for efficient location filtering.
-
----
-
-## Getting started (local)
-
-### Prerequisites
-
-* Node.js (v16+) and npm
-* MongoDB (local or cloud Atlas)
-* Optional: yarn, Docker
-
-### Clone & install
+## Getting started
 
 ```bash
-git clone https://github.com/<your-org>/geosave.git
-cd geosave
+cd backend
 npm install
+cp .env.example .env      # then fill in MONGODB_URI and JWT_SECRET
+npm run dev               # or: npm start
+```
+
+Open <http://localhost:5000>. The API and the website are served by the same server.
+
+Generate a strong `JWT_SECRET` with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
 ### Environment variables
 
-Create a `.env` file in the project root. Example variables:
+| Variable | Required | Description |
+| --- | --- | --- |
+| `MONGODB_URI` | yes (production) | MongoDB connection string |
+| `JWT_SECRET` | yes (production) | Random secret, at least 32 characters |
+| `NODE_ENV` | no | `production` enables secure cookies, HSTS and strict config checks |
+| `PORT` | no | Default `5000` |
+| `SESSION_DAYS` | no | Login lifetime in days (default `7`) |
+| `CORS_ORIGINS` | no | Comma-separated extra origins, only if the frontend is hosted elsewhere |
+| `TRUST_PROXY` | no | Number of reverse proxies in front of the app (for correct client IPs in rate limiting) |
+| `MAX_UPLOAD_MB` | no | Maximum image size (default `5`) |
 
-```
-PORT=3000
-MONGODB_URI=mongodb://localhost:27017/geosave
-JWT_SECRET=your_jwt_secret_here
-UPLOAD_DIR=./uploads
-WHATSAPP_TEMPLATE=https://wa.me/{{phone}}?text={{message}}
-NODE_ENV=development
-```
+### Scripts
 
-### Run (development)
+| Command | Description |
+| --- | --- |
+| `npm start` / `npm run dev` | Run the server (dev mode restarts on file changes) |
+| `npm test` | Run the API and security test suite |
+| `npm run make-admin -- user@example.com` | Give an existing user the admin role |
+| `npm run migrate` | One-time migration of data created by v1 (see below) |
 
-```bash
-npm run dev
-# or
-NODE_ENV=development nodemon server.js
-```
+### Upgrading from v1
 
-The API will be available at `http://localhost:3000/` (adjust port as needed).
+v1 stored coordinates as `latitude`/`longitude`, product status as `pending`/`confirmed` and phone numbers as numbers. Run `npm run migrate` once against your database. It converts products to GeoJSON, maps statuses to `available`/`booked`, normalizes phones and emails, and creates the required indexes.
 
----
-
-## Important API endpoints (example)
-
-> Note: adapt routes and auth as you implement them.
-
-### Listings
-
-* `GET /api/listings`
-  Query params: `?lat=xx.x&lng=yy.y&radius=5000` (radius in meters)
-  Returns: paginated listings within the given radius.
-
-* `GET /api/listings/:id`
-  Returns listing details.
-
-* `POST /api/listings`
-  Create new listing (owner). Body: `{ title, description, price, location: { type: "Point", coordinates: [lng, lat] }, owner }`
-  Supports `multipart/form-data` for image uploads (Multer).
-
-* `PUT /api/listings/:id`
-  Update listing (owner/admin).
-
-* `DELETE /api/listings/:id`
-  Remove listing (owner/admin).
-
-### Bookings
-
-* `POST /api/bookings`
-  Body: `{ listingId, renterName, renterPhone, startDate, endDate }`
-  Triggers WhatsApp booking link generation.
-
-* `GET /api/bookings/:id`
-  Booking details (admin/owner).
-
-### Admin
-
-* `GET /api/admin/listings?status=pending`
-  Get pending listings for approval.
-
-* `POST /api/admin/listings/:id/approve`
-  Approve listing.
-
-* `POST /api/admin/listings/:id/reject`
-  Reject listing with reason.
+In v1, anyone named "admin" was treated as an admin. Admins are now set explicitly with `npm run make-admin`.
 
 ---
 
-## MongoDB schema (summary)
+## API
 
-### Listing (example)
+Every request that changes data (`POST`, `DELETE`) must send the header `X-Requested-With: GeoSave`, which protects against CSRF. Authentication uses the `geosave_token` cookie set by login/register.
 
-```js
-{
-  _id: ObjectId,
-  title: String,
-  description: String,
-  price: Number,
-  images: [String], // file paths or cloud URLs
-  ownerId: ObjectId,
-  location: {
-    type: "Point",
-    coordinates: [lng, lat]
-  },
-  status: "pending" | "approved" | "rejected",
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-**Index note:** create a `2dsphere` index on `location`:
-
-```js
-db.listings.createIndex({ location: "2dsphere" });
-```
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/register` | – | `{ name, email, password }` → creates an account and signs in |
+| `POST` | `/api/auth/login` | – | `{ email, password }` |
+| `POST` | `/api/auth/logout` | – | Clears the session cookie |
+| `GET` | `/api/auth/me` | optional | `{ user }` (`null` for guests) |
+| `GET` | `/api/products?lat=&lng=&radius=&q=&available=true&page=` | – | Nearby listings with `distance` (meters). No exact coordinates or phone numbers are returned |
+| `GET` | `/api/products/mine` | ✔ | The user's listings with booking info |
+| `POST` | `/api/products` | ✔ | `multipart/form-data`: `name, description, pricePerDay, latitude, longitude, phoneNumber, image` |
+| `DELETE` | `/api/products/:id` | owner / admin | Deletes the listing, its bookings and its image |
+| `POST` | `/api/bookings` | ✔ | `{ productId }` |
+| `GET` | `/api/bookings/mine` | ✔ | The user's bookings, including the owner's phone |
+| `DELETE` | `/api/bookings/:id` | booker / owner / admin | Cancels a booking |
+| `GET` | `/api/health` | – | Health check |
 
 ---
 
-## Geolocation search (implementation tips)
+## Security
 
-* Convert radius (km) → meters for Mongo queries. Default = 5000m (5 km).
-* Use `$geoNear` for aggregation pipelines or `$nearSphere` with `maxDistance` for simple queries.
-* Use pagination and limit returned fields to reduce payload (e.g., exclude large images in list endpoints).
-
-Example Node/Mongo query using Mongoose:
-
-```js
-Listing.find({
-  location: {
-    $nearSphere: {
-      $geometry: { type: "Point", coordinates: [lng, lat] },
-      $maxDistance: radiusInMeters
-    }
-  },
-  status: "approved"
-})
-.limit(30)
-.exec()
-```
+See [SECURITY.md](SECURITY.md) for the security model and audit notes.
 
 ---
 
-## Image upload & optimization
+## Contact
 
-* Use **Multer** to accept uploads (multipart/form-data).
-* Pipe uploaded images to **Sharp** to resize (e.g., 1024px max width) and compress for performance.
-* Store files locally during development (`./uploads`) and consider cloud storage (S3, Azure Blob, etc.) for production.
-* When returning listing results, provide thumbnail URLs and lazy-load full images at the client.
-
----
-
-## Security & best practices
-
-* **Validation:** validate all inputs server-side (use Joi or express-validator).
-* **Auth & Authorization:** protect admin endpoints and owner-only actions with JWT/session auth.
-* **Rate limiting:** implement request throttling to protect public endpoints.
-* **Sanitize:** avoid storing raw HTML; sanitize inputs to prevent XSS.
-* **Backups:** schedule DB backups and test restore procedures.
-* **CORS:** restrict origins as appropriate for production.
-
----
-
-## Logging & monitoring
-
-* Log application errors and important events (listing approvals, booking creation).
-* Integrate centralized logs/monitoring (e.g., ELK / Cloudwatch / Papertrail) for production systems.
-* Track performance: DB slow queries, endpoint latency, image processing duration.
-
----
-
-## Tests
-
-* Unit test critical functions (distance calculation, data validation).
-* Integration tests for core API flows (create listing, search, booking).
-* Manual usability testing for the front-end flows (search → view → contact/book).
-
----
-
-## Deployment notes
-
-* Containerize with Docker for consistent environments.
-* Use env vars for credentials, storage and third-party keys.
-* For production, use cloud object storage for images and a managed MongoDB instance (Atlas).
-* Configure HTTPS and secure cookies; set proper HTTP security headers (CSP, HSTS).
-
----
-
-## Roadmap / Future ideas
-
-* Native mobile apps (Flutter) with offline support & push notifications.
-* Personalized recommendation engine (AI) based on user behaviour.
-* Multi-language support and accessibility improvements.
-* In-app payments and secure escrow for bookings.
-* Blockchain-based audit trail for listing provenance (optional).
-* Publishers dashboard and monetization tools.
-
----
-
-## contact
-
-* **Author / Contact:** Mahmoud Khalid Abuzaid — [mhmoodw201@gmail.com](mailto:mhmoodw201@gmail.com)
-
----
-
-Thanks for checking out **GeoSave** — a compact, practical proof-of-concept for location-centric rental services. If you’d like, I can provide a Postman collection or sample data seed to help spin up a quick demo.
+* **Author:** Mahmoud Khalid Abuzaid — [mhmoodw201@gmail.com](mailto:mhmoodw201@gmail.com)

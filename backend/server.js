@@ -1,51 +1,34 @@
 // server.js
-// هنا ببدء تشغيل السيرفر والاتصال بقاعدة البيانات 
+// نقطة تشغيل الخادم: الاتصال بقاعدة البيانات ثم بدء الاستماع
 
-const express = require('express');
-const session = require('express-session');
 const mongoose = require('mongoose');
-const userRoutes = require('./routes/userRoutes');
-const productRoutes = require('./routes/productRoutes');
-const bookingRoutes = require('./routes/bookingRoutes');
-const cors = require("cors")
-const path = require('path');
-const app = express();
+const config = require('./config');
+const { createApp } = require('./app');
 
-app.use(cors())
+async function start() {
+    try {
+        await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 10000 });
+        console.log('Connected to MongoDB');
+    } catch (error) {
+        console.error('MongoDB connection error:', error.message);
+        process.exit(1);
+    }
 
+    const app = createApp();
+    const server = app.listen(config.port, () => {
+        console.log(`GeoSave is running on http://localhost:${config.port}`);
+    });
 
-// إعداد الاتصال بقاعدة البيانات
-mongoose.connect('mongodb+srv://mhmoodw201:b7z4kN5YkC5D1P4h@cluster0.lhl76.mongodb.net/geosave', {
-    // useNewUrlParser: true,
-    // useUnifiedTopology: true,
-    
-}).then(() => console.log('Connected to MongoDB'))
-    .catch((error) => console.error('MongoDB connection error:', error));
+    const shutdown = (signal) => {
+        console.log(`${signal} received, shutting down...`);
+        server.close(async () => {
+            await mongoose.connection.close();
+            process.exit(0);
+        });
+        setTimeout(() => process.exit(1), 10000).unref();
+    };
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+}
 
-// إعداد الجلسات
-app.use(session({
-    secret: 'mySecretKey', // مفتاح سري لتشفير الجلسات
-    resave: false,
-    saveUninitialized: false,
-}));
-
-
-// معالجة بيانات JSON
-app.use(express.json());
-
-// استخدام الـRoutes
-app.use(userRoutes);
-app.use(productRoutes);
-app.use('/bookings', bookingRoutes);
-
-
-// الصور المخزنة في مجلد uploads/ 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-
-// بدء تشغيل السيرفر
-const PORT = 5000;
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
-
+start();
