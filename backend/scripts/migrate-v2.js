@@ -7,13 +7,13 @@
 // التشغيل:  npm run migrate
 
 const mongoose = require('mongoose');
-const config = require('../config');
+const { connectDatabase } = require('../db');
 const Product = require('../models/productModel');
 const Booking = require('../models/bookingModel');
 const User = require('../models/userModel');
 
 async function main() {
-    await mongoose.connect(config.mongoUri);
+    const database = await connectDatabase(); // أوقف الخادم أولاً عند استخدام قاعدة البيانات المدمجة
     const products = mongoose.connection.collection('products');
 
     const legacy = await products.find({ location: { $exists: false } }).toArray();
@@ -70,7 +70,7 @@ async function main() {
     console.log(`Products converted: ${converted}, skipped (invalid coordinates): ${skipped}`);
     console.log(`Duplicate bookings removed: ${duplicates.reduce((n, d) => n + d.count - 1, 0)}`);
     console.log('Migration complete.');
-    await mongoose.disconnect();
+    await database.stop();
 }
 
 main().catch((error) => {

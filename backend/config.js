@@ -2,6 +2,7 @@
 // إعدادات التطبيق المركزية — تُقرأ من متغيرات البيئة فقط ولا تُكتب أي أسرار في الكود.
 
 const crypto = require('crypto');
+const fs = require('fs');
 const path = require('path');
 
 require('dotenv').config({ path: path.join(__dirname, '.env'), quiet: true });
@@ -28,17 +29,31 @@ function resolveJwtSecret() {
         console.warn('[config] JWT_SECRET is shorter than 32 characters; using it only because NODE_ENV is not production.');
         return secret;
     }
-    if (!isTest) {
-        console.warn('[config] JWT_SECRET is not set; using a random secret. Sessions will be invalidated on restart.');
+    if (isTest) return crypto.randomBytes(48).toString('hex');
+
+    // بيئة التطوير: نولّد مفتاحاً عشوائياً مرة واحدة ونحفظه محلياً (backend/.data مستثنى من git)
+    // حتى لا تنتهي الجلسات عند كل إعادة تشغيل
+    const secretFile = path.join(__dirname, '.data', 'dev-jwt-secret');
+    try {
+        const saved = fs.readFileSync(secretFile, 'utf8').trim();
+        if (saved.length >= 32) return saved;
+    } catch { /* الملف غير موجود بعد */ }
+    const generated = crypto.randomBytes(48).toString('hex');
+    try {
+        fs.mkdirSync(path.dirname(secretFile), { recursive: true });
+        fs.writeFileSync(secretFile, generated, { mode: 0o600 });
+    } catch {
+        console.warn('[config] Could not save the development JWT secret; sessions will reset on restart.');
     }
-    return crypto.randomBytes(48).toString('hex');
+    return generated;
 }
 
+// بدون MONGODB_URI في بيئة التطوير تُستخدم قاعدة بيانات مدمجة (انظر db.js)
 function resolveMongoUri() {
     const uri = process.env.MONGODB_URI;
     if (uri) return uri;
     if (isProduction) throw new Error('MONGODB_URI must be set in production.');
-    return 'mongodb://127.0.0.1:27017/geosave';
+    return null;
 }
 
 const config = Object.freeze({

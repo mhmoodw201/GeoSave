@@ -1,6 +1,10 @@
 // geo.js — الحصول على موقع المستخدم برسائل خطأ واضحة
 
 export function getPosition({ timeout = 15000 } = {}) {
+    // النسخة التجريبية لا تستطيع الوصول إلى الموقع، فتستخدم موقعاً افتراضياً
+    const demo = window.__GEOSAVE_SPA__;
+    if (demo) return Promise.resolve(demo.position);
+
     return new Promise((resolve, reject) => {
         if (!('geolocation' in navigator)) {
             reject(new Error('متصفحك لا يدعم تحديد الموقع.'));

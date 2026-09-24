@@ -2,7 +2,7 @@
 
 **GeoSave** is a location-aware rental marketplace: people list items they rent out, and others find, book and contact owners nearby. Listings are filtered by distance from the visitor (default radius **5 km**) using MongoDB geospatial queries.
 
-> The web interface is in Arabic (RTL) and supports light and dark mode automatically.
+> The web interface is in Arabic (RTL), uses the **IBM Plex Sans Arabic** typeface (self-hosted), and supports light and dark mode automatically.
 
 ---
 
@@ -28,15 +28,19 @@
 ```
 frontend/            static site (index, login, register, add-product, account)
   assets/css/        design system
+  assets/fonts/      IBM Plex Sans Arabic (woff2, SIL Open Font License)
   assets/js/         api client, UI helpers, session, per-page scripts
+  demo/              in-browser demo backend and single-page router (demo build only)
+shared/              demo data shared by the server and the browser demo
 backend/
   server.js          entry point (DB connection + HTTP server)
+  db.js              MongoDB connection (MONGODB_URI or embedded database)
   app.js             Express app and middleware stack
   config.js          environment-driven configuration
   middleware/        auth, security (CSP, CORS, CSRF, rate limits), error handler
   models/            User, Product, Booking
   routes/            /api/auth, /api/products, /api/bookings
-  scripts/           make-admin, migrate-v2
+  scripts/           make-admin, migrate-v2, build-demo
   tests/             API and security tests (node:test + supertest)
 ```
 
@@ -44,14 +48,28 @@ backend/
 
 ## Getting started
 
+### Quick start (no setup)
+
 ```bash
 cd backend
 npm install
-cp .env.example .env      # then fill in MONGODB_URI and JWT_SECRET
-npm run dev               # or: npm start
+npm start
 ```
 
-Open <http://localhost:5000>. The API and the website are served by the same server.
+Open <http://localhost:5000> and sign in with the demo account **demo@geosave.app / Demo1234**.
+
+With no `MONGODB_URI`, development mode starts an **embedded MongoDB** automatically (downloaded on first run by `mongodb-memory-server`). It stores its data in `backend/.data/`, so the data survives restarts. On first start it creates demo users and 9 demo listings around Riyadh. If your browser location is elsewhere, the home page offers **"أضف منتجات تجريبية قرب موقعي"**, which adds the demo listings near you. Demo features are disabled whenever `MONGODB_URI` is set.
+
+To start over, stop the server and delete `backend/.data/`.
+
+### Using your own MongoDB (Atlas or local)
+
+```bash
+cp .env.example .env      # then fill in MONGODB_URI and JWT_SECRET
+npm start
+```
+
+The API and the website are served by the same server.
 
 Generate a strong `JWT_SECRET` with:
 
@@ -63,7 +81,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `MONGODB_URI` | yes (production) | MongoDB connection string |
+| `MONGODB_URI` | yes (production) | MongoDB connection string. Leave empty in development to use the embedded database |
 | `JWT_SECRET` | yes (production) | Random secret, at least 32 characters |
 | `NODE_ENV` | no | `production` enables secure cookies, HSTS and strict config checks |
 | `PORT` | no | Default `5000` |
@@ -77,6 +95,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 | Command | Description |
 | --- | --- |
 | `npm start` / `npm run dev` | Run the server (dev mode restarts on file changes) |
+| `npm run build:demo` | Build a standalone single-file demo (`dist/geosave-demo.html`) that runs entirely in the browser |
 | `npm test` | Run the API and security test suite |
 | `npm run make-admin -- user@example.com` | Give an existing user the admin role |
 | `npm run migrate` | One-time migration of data created by v1 (see below) |

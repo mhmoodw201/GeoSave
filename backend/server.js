@@ -1,20 +1,31 @@
 // server.js
 // نقطة تشغيل الخادم: الاتصال بقاعدة البيانات ثم بدء الاستماع
 
-const mongoose = require('mongoose');
 const config = require('./config');
+const { connectDatabase } = require('./db');
 const { createApp } = require('./app');
 
 async function start() {
+    let database;
     try {
-        await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 10000 });
-        console.log('Connected to MongoDB');
+        database = await connectDatabase();
+        console.log(database.embedded
+            ? 'Connected to the embedded MongoDB (data saved in backend/.data)'
+            : 'Connected to MongoDB');
     } catch (error) {
-        console.error('MongoDB connection error:', error.message);
+        console.error('Database connection error:', error.message);
         process.exit(1);
     }
 
-    const app = createApp();
+    if (database.embedded) {
+        const { seedDemoData } = require('./utils/demoSeed');
+        const { DEMO_PASSWORD, DEMO_USERS } = require('../shared/demo-data');
+        const created = await seedDemoData();
+        if (created) console.log(`Demo data created (${created} products around Riyadh).`);
+        console.log(`Demo login: ${DEMO_USERS[0].email} / ${DEMO_PASSWORD}`);
+    }
+
+    const app = createApp({ demo: database.embedded });
     const server = app.listen(config.port, () => {
         console.log(`GeoSave is running on http://localhost:${config.port}`);
     });
@@ -22,7 +33,7 @@ async function start() {
     const shutdown = (signal) => {
         console.log(`${signal} received, shutting down...`);
         server.close(async () => {
-            await mongoose.connection.close();
+            await database.stop();
             process.exit(0);
         });
         setTimeout(() => process.exit(1), 10000).unref();

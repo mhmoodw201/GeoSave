@@ -2,7 +2,7 @@
 // ترقية مستخدم موجود إلى مشرف:  npm run make-admin -- user@example.com
 
 const mongoose = require('mongoose');
-const config = require('../config');
+const { connectDatabase } = require('../db');
 const User = require('../models/userModel');
 
 async function main() {
@@ -11,10 +11,10 @@ async function main() {
         console.error('Usage: npm run make-admin -- <email>');
         process.exit(1);
     }
-    await mongoose.connect(config.mongoUri);
+    const database = await connectDatabase(); // أوقف الخادم أولاً عند استخدام قاعدة البيانات المدمجة
     const result = await User.updateOne({ email }, { $set: { role: 'admin' } });
     console.log(result.matchedCount ? `${email} is now an admin.` : `No user found with email ${email}.`);
-    await mongoose.disconnect();
+    await database.stop();
 }
 
 main().catch((error) => {

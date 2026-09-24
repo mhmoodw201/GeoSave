@@ -13,6 +13,14 @@ export class ApiError extends Error {
  * @param {{ method?: string, body?: unknown, form?: FormData, query?: Record<string, unknown> }} [options]
  */
 export async function api(path, { method = 'GET', body, form, query } = {}) {
+    // النسخة التجريبية على المتصفح: الطلبات تُخدم محلياً بدون خادم
+    const demoBackend = window.__GEOSAVE_SPA__?.api;
+    if (demoBackend) {
+        const result = await demoBackend(path, { method, body, form, query });
+        if (result.status >= 400) throw new ApiError(result.data.error || 'حدث خطأ غير متوقع.', result.status);
+        return result.data;
+    }
+
     const headers = { 'X-Requested-With': 'GeoSave', Accept: 'application/json' };
     let payload;
     if (form) {

@@ -2,8 +2,23 @@
 
 import { api, ApiError } from './api.js';
 import { el, icon, toast, flash, showFlash } from './ui.js';
+import { currentPath, currentSearch, navigate } from './nav.js';
 
 let currentUserPromise;
+let serverInfoPromise;
+
+/** معلومات الخادم (مثل: هل يعمل بوضع العرض التجريبي) */
+export function getServerInfo() {
+    if (!serverInfoPromise) {
+        serverInfoPromise = api('/health').catch(() => ({ demo: false }));
+    }
+    return serverInfoPromise;
+}
+
+/** يُستدعى بعد تسجيل الدخول/الخروج في النسخة أحادية الصفحة */
+export function resetSession() {
+    currentUserPromise = undefined;
+}
 
 export function getCurrentUser() {
     if (!currentUserPromise) {
@@ -20,7 +35,7 @@ export function getCurrentUser() {
 // يسمح فقط بإعادة التوجيه إلى صفحات داخلية معروفة (يمنع Open Redirect)
 const SAFE_PAGES = new Set(['/', '/index.html', '/account.html', '/add-product.html']);
 export function safeNext(fallback = '/') {
-    const next = new URLSearchParams(window.location.search).get('next');
+    const next = new URLSearchParams(currentSearch()).get('next');
     return next && SAFE_PAGES.has(next) ? next : fallback;
 }
 
@@ -34,7 +49,7 @@ export async function requireAuth() {
     }
     if (!user) {
         flash('يجب تسجيل الدخول للمتابعة.', 'info');
-        window.location.replace(`/login.html?next=${encodeURIComponent(window.location.pathname)}`);
+        navigate(`/login.html?next=${encodeURIComponent(currentPath())}`, { replace: true });
         return null;
     }
     return user;
@@ -42,7 +57,7 @@ export async function requireAuth() {
 
 export async function redirectIfLoggedIn() {
     try {
-        if (await getCurrentUser()) window.location.replace(safeNext());
+        if (await getCurrentUser()) navigate(safeNext(), { replace: true });
     } catch { /* الخادم غير متاح — تبقى الصفحة كما هي */ }
 }
 
@@ -50,8 +65,9 @@ async function logout() {
     try {
         await api('/auth/logout', { method: 'POST' });
     } catch { /* نكمل الخروج من جهة العميل على أي حال */ }
+    resetSession();
     flash('تم تسجيل الخروج بنجاح.');
-    window.location.href = '/';
+    navigate('/');
 }
 
 function navLink(href, label, iconName, current) {
@@ -63,7 +79,7 @@ function navLink(href, label, iconName, current) {
 function renderNav(user) {
     const nav = document.getElementById('site-nav');
     if (!nav) return;
-    const path = window.location.pathname.replace(/\/$/, '/index.html');
+    const path = currentPath().replace(/\/$/, '/index.html');
     const is = (page) => path.endsWith(page);
 
     const links = [navLink('/', 'الرئيسية', 'home', is('/index.html'))];
@@ -80,10 +96,15 @@ function renderNav(user) {
     nav.replaceChildren(...links);
 }
 
+let navToggleReady = false;
 function initNavToggle() {
     const toggle = document.querySelector('.nav-toggle');
     const nav = document.getElementById('site-nav');
     if (!toggle || !nav) return;
+    nav.classList.remove('is-open');
+    toggle.setAttribute('aria-expanded', 'false');
+    if (navToggleReady) return; // الترويسة ثابتة في النسخة أحادية الصفحة
+    navToggleReady = true;
     toggle.addEventListener('click', () => {
         const open = toggle.getAttribute('aria-expanded') !== 'true';
         toggle.setAttribute('aria-expanded', String(open));

@@ -8,6 +8,7 @@ const config = require('./config');
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const demoRoutes = require('./routes/demoRoutes');
 const {
     helmetMiddleware, permissionsPolicy, corsMiddleware, csrfProtection, apiLimiter,
 } = require('./middleware/security');
@@ -35,7 +36,10 @@ function rejectUnsafeInput(req, _res, next) {
     return next();
 }
 
-function createApp() {
+/**
+ * @param {{ demo?: boolean }} [options] demo: تفعيل مسارات العرض التجريبي (قاعدة البيانات المدمجة فقط)
+ */
+function createApp({ demo = false } = {}) {
     const app = express();
 
     app.disable('x-powered-by');
@@ -55,8 +59,11 @@ function createApp() {
     api.use(rejectUnsafeInput);
 
     api.get('/health', (_req, res) => {
-        res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'up' : 'down' });
+        res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'up' : 'down', demo });
     });
+    if (demo && !config.isProduction) {
+        api.use('/demo', demoRoutes);
+    }
     api.use('/auth', authRoutes);
     api.use('/products', productRoutes);
     api.use('/bookings', bookingRoutes);

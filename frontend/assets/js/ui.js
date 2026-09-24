@@ -1,5 +1,7 @@
 // ui.js — أدوات بناء الواجهة بأمان (لا innerHTML لبيانات المستخدم) والإشعارات والحوارات
 
+import { iconHref, isSpa } from './nav.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const numberFormat = new Intl.NumberFormat('ar-SA-u-nu-latn', { maximumFractionDigits: 2 });
 const dateFormat = new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory', { dateStyle: 'medium' });
@@ -11,7 +13,7 @@ export function icon(name, className = '') {
     svg.setAttribute('aria-hidden', 'true');
     svg.setAttribute('focusable', 'false');
     const use = document.createElementNS(SVG_NS, 'use');
-    use.setAttribute('href', `/assets/icons.svg#${name}`);
+    use.setAttribute('href', iconHref(name));
     svg.appendChild(use);
     return svg;
 }
@@ -57,6 +59,8 @@ export function formatDate(value) {
 
 /** يعيد رابط صورة آمن من مسار مخزن في الخادم */
 export function imageUrl(path) {
+    // النسخة التجريبية تحفظ الصور في المتصفح كـ data URL
+    if (isSpa() && typeof path === 'string' && /^data:image\/(webp|jpeg|png|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(path)) return path;
     if (typeof path !== 'string' || !/^uploads\/[\w.\- ]+$/.test(path)) return '';
     return `/${path.split('/').map(encodeURIComponent).join('/')}`;
 }
