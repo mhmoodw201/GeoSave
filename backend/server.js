@@ -4,6 +4,11 @@
 const config = require('./config');
 const { connectDatabase } = require('./db');
 const { createApp } = require('./app');
+require('./models/userModel');
+require('./models/productModel');
+require('./models/bookingModel');
+require('./models/reviewModel');
+require('./models/orderModel');
 
 async function start() {
     let database;
@@ -14,6 +19,15 @@ async function start() {
             : 'Connected to MongoDB');
     } catch (error) {
         console.error('Database connection error:', error.message);
+        process.exit(1);
+    }
+
+    // مزامنة الفهارس مع المخططات (مثل الفهرس الفريد الجزئي للحجوزات النشطة)
+    try {
+        await Promise.all(['User', 'Product', 'Booking', 'Review', 'Order']
+            .map((name) => require('mongoose').model(name).syncIndexes()));
+    } catch (error) {
+        console.error('Index sync failed:', error.message);
         process.exit(1);
     }
 

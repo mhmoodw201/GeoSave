@@ -32,7 +32,8 @@
         <div id="page-content" hidden>
             <div class="page-head">
                 <h1>أضف إعلاناً جديداً</h1>
-                <p class="muted">اعرض منتجك للإيجار وسيظهر للمستخدمين القريبين منك.</p>
+                <p class="muted">اعرض غرضك للإعارة المجانية أو للتأجير، وسيظهر للمستخدمين القريبين منك.</p>
+                <p id="listing-limit" class="muted small" hidden></p>
             </div>
             <form id="add-product-form" class="card form form-card" novalidate>
                 <div class="field">
@@ -56,13 +57,54 @@
                     <textarea id="description" name="description" required minlength="5" maxlength="1000" rows="4" placeholder="اذكر الحالة، المواصفات، وأي شروط للاستخدام…"></textarea>
                     <span id="description-count" class="hint counter">0 / 1000</span>
                 </div>
+                <fieldset class="field">
+                    <legend class="label">نوع العرض</legend>
+                    <div class="choice-grid">
+                        <label class="choice">
+                            <input type="radio" name="offerType" value="free" checked>
+                            <span class="choice-body">
+                                <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#gift"/></svg>
+                                <strong>إعارة مجانية</strong>
+                                <span class="hint">تعيره لجيرانك دون مقابل.</span>
+                            </span>
+                        </label>
+                        <label class="choice">
+                            <input type="radio" name="offerType" value="rent">
+                            <span class="choice-body">
+                                <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#cash"/></svg>
+                                <strong>تأجير بسعر يومي</strong>
+                                <span class="hint">يدفع المستأجر لك مباشرة.</span>
+                            </span>
+                        </label>
+                    </div>
+                </fieldset>
                 <div class="field-row">
-                    <div class="field">
+                    <div class="field" id="price-field" hidden>
                         <label for="price">السعر اليومي (ر.س)</label>
                         <div class="input-wrap">
                             <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#cash"/></svg>
-                            <input type="number" id="price" name="price" required min="1" max="100000" step="0.5" inputmode="decimal" dir="ltr">
+                            <input type="number" id="price" name="price" min="1" max="100000" step="0.5" inputmode="decimal" dir="ltr">
                         </div>
+                    </div>
+                    <div class="field">
+                        <label for="max-days">أقصى مدة للاستعارة</label>
+                        <select id="max-days" name="maxDays">
+                            <option value="1">يوم واحد</option>
+                            <option value="3">3 أيام</option>
+                            <option value="7" selected>7 أيام</option>
+                            <option value="14">14 يوماً</option>
+                            <option value="30">30 يوماً</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="deposit">مبلغ تأمين مسترد (اختياري)</label>
+                        <div class="input-wrap">
+                            <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#shield"/></svg>
+                            <input type="number" id="deposit" name="deposit" min="0" max="100000" step="1" inputmode="numeric" dir="ltr" placeholder="0">
+                        </div>
+                        <p class="hint">يُتفق عليه ويُسلَّم بينك وبين المستعير مباشرة. المنصة لا تستلمه.</p>
                     </div>
                     <div class="field">
                         <label for="phone">رقم الجوال (واتساب)</label>
@@ -77,6 +119,10 @@
                     <span class="label">موقع الإعلان</span>
                     <div id="location-box" class="location-status is-loading" aria-live="polite"></div>
                 </div>
+                <label class="check">
+                    <input type="checkbox" id="accept-terms" name="acceptTerms" required>
+                    <span>أقر بأنني مالك هذا الغرض أو مخوّل بإعارته، وأنه نظامي وبحالة سليمة، وأن الاتفاق والتسليم والتأمين بيني وبين المستعير مباشرة، وأن GeoSave غير مسؤولة عن أي ضياع أو تلف أو تعويض، وأوافق على <a href="/terms.html" target="_blank" rel="noopener">شروط الاستخدام</a>.</span>
+                </label>
                 <button type="submit" class="btn btn-primary btn-block btn-lg"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#plus"/></svg> نشر الإعلان</button>
             </form>
         </div>
@@ -84,11 +130,19 @@
 
     <footer class="site-footer">
         <div class="container footer-inner">
-            <a class="brand brand-sm" href="/">
-                <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#pin"/></svg></span>
-                <span class="brand-name">Geo<span>Save</span></span>
-            </a>
-            <p class="muted">استأجر ما تحتاجه من جيرانك، ووفّر أكثر.</p>
+            <div class="footer-brand">
+                <a class="brand brand-sm" href="/">
+                    <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#pin"/></svg></span>
+                    <span class="brand-name">Geo<span>Save</span></span>
+                </a>
+                <p class="muted">استعِر أو استأجر ما تحتاجه من جيرانك، ووفّر أكثر.</p>
+            </div>
+            <nav class="footer-links" aria-label="روابط قانونية">
+                <a href="/services.html">الخدمات والباقات</a>
+                <a href="/terms.html">شروط الاستخدام</a>
+                <a href="/privacy.html">سياسة الخصوصية</a>
+            </nav>
+            <p class="muted small footer-note">GeoSave منصة تقنية وسيطة وليست طرفاً في أي اتفاق بين المستخدمين، ولا تتحمل مسؤولية أي ضياع أو تلف أو تعويض.</p>
             <p class="muted small">&copy; <span data-year>2026</span> GeoSave. جميع الحقوق محفوظة.</p>
         </div>
     </footer>

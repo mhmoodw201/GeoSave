@@ -9,6 +9,8 @@ const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const demoRoutes = require('./routes/demoRoutes');
+const userRoutes = require('./routes/userRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
 const {
     helmetMiddleware, permissionsPolicy, corsMiddleware, csrfProtection, apiLimiter,
 } = require('./middleware/security');
@@ -67,6 +69,8 @@ function createApp({ demo = false } = {}) {
     api.use('/auth', authRoutes);
     api.use('/products', productRoutes);
     api.use('/bookings', bookingRoutes);
+    api.use('/users', userRoutes);
+    api.use('/services', serviceRoutes);
     api.use(notFound);
 
     app.use('/api', api);

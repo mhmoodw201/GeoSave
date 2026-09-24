@@ -20,7 +20,7 @@ const pick = (html, regex) => {
 const inlineIcons = (html) => html.replace(/\/assets\/icons\.svg#([\w-]+)/g, '#i-$1');
 
 async function main() {
-    const pages = ['index.html', 'login.html', 'register.html', 'add-product.html', 'account.html'];
+    const pages = ['index.html', 'login.html', 'register.html', 'add-product.html', 'account.html', 'services.html', 'terms.html', 'privacy.html', 'payment-return.html'];
     const templates = {};
     for (const page of pages) {
         const html = read(page);

@@ -3,7 +3,7 @@
 import { api } from '../api.js';
 import { initPage, redirectIfLoggedIn, safeNext, resetSession } from '../session.js';
 import { setBusy, showFormError, flash, initPasswordToggles } from '../ui.js';
-import { navigate, currentSearch, currentHash } from '../nav.js';
+import { navigate, currentSearch } from '../nav.js';
 
 export function init() {
     const form = document.getElementById('register-form');
@@ -42,6 +42,9 @@ export function init() {
         if (password !== form.elements.namedItem('confirm').value) {
             return 'كلمتا المرور غير متطابقتين.';
         }
+        if (!form.elements.namedItem('acceptTerms').checked) {
+            return 'يجب الموافقة على شروط الاستخدام وسياسة الخصوصية.';
+        }
         return '';
     }
 
@@ -59,7 +62,12 @@ export function init() {
         try {
             const { user } = await api('/auth/register', {
                 method: 'POST',
-                body: { name: form.elements.namedItem('name').value.trim(), email: form.elements.namedItem('email').value.trim(), password: form.elements.namedItem('password').value },
+                body: {
+                    name: form.elements.namedItem('name').value.trim(),
+                    email: form.elements.namedItem('email').value.trim(),
+                    password: form.elements.namedItem('password').value,
+                    acceptTerms: true,
+                },
             });
             resetSession();
             flash(`مرحباً ${user.name}! تم إنشاء حسابك بنجاح.`);

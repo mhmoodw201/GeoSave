@@ -35,36 +35,50 @@
                 <div class="profile-info">
                     <h1 id="profile-name"></h1>
                     <p class="muted"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#mail"/></svg> <span id="profile-email" dir="ltr"></span></p>
-                    <span id="profile-role" class="badge badge-accent" hidden>مشرف</span>
+                    <div id="profile-badges" class="profile-badges"></div>
                 </div>
                 <div class="profile-stats">
-                    <div><strong id="booking-count">–</strong><span>حجوزات</span></div>
+                    <div><strong id="active-count">–</strong><span>استعارات نشطة</span></div>
                     <div><strong id="product-count">–</strong><span>إعلانات</span></div>
                 </div>
                 <a class="btn btn-primary" href="/add-product.html"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#plus"/></svg> إعلان جديد</a>
             </section>
 
+            <section id="alerts" class="alerts" aria-label="تنبيهات" aria-live="polite" hidden></section>
+
             <div class="tabs" role="tablist" aria-label="أقسام الحساب">
-                <button type="button" role="tab" id="tab-bookings" aria-controls="panel-bookings" aria-selected="true"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#bookmark"/></svg> حجوزاتي</button>
+                <button type="button" role="tab" id="tab-borrowed" aria-controls="panel-borrowed" aria-selected="true"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#bookmark"/></svg> استعاراتي</button>
                 <button type="button" role="tab" id="tab-products" aria-controls="panel-products" aria-selected="false" tabindex="-1"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#box"/></svg> إعلاناتي</button>
+                <button type="button" role="tab" id="tab-orders" aria-controls="panel-orders" aria-selected="false" tabindex="-1"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#receipt"/></svg> مشترياتي</button>
             </div>
 
-            <section id="panel-bookings" role="tabpanel" aria-labelledby="tab-bookings" tabindex="0">
-                <div id="booking-list" class="list"></div>
+            <section id="panel-borrowed" role="tabpanel" aria-labelledby="tab-borrowed" tabindex="0">
+                <div id="borrowed-list" class="list"></div>
             </section>
             <section id="panel-products" role="tabpanel" aria-labelledby="tab-products" tabindex="0" hidden>
                 <div id="product-list" class="list"></div>
+            </section>
+            <section id="panel-orders" role="tabpanel" aria-labelledby="tab-orders" tabindex="0" hidden>
+                <div id="order-list" class="list"></div>
             </section>
         </div>
     </main>
 
     <footer class="site-footer">
         <div class="container footer-inner">
-            <a class="brand brand-sm" href="/">
-                <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#pin"/></svg></span>
-                <span class="brand-name">Geo<span>Save</span></span>
-            </a>
-            <p class="muted">استأجر ما تحتاجه من جيرانك، ووفّر أكثر.</p>
+            <div class="footer-brand">
+                <a class="brand brand-sm" href="/">
+                    <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#pin"/></svg></span>
+                    <span class="brand-name">Geo<span>Save</span></span>
+                </a>
+                <p class="muted">استعِر أو استأجر ما تحتاجه من جيرانك، ووفّر أكثر.</p>
+            </div>
+            <nav class="footer-links" aria-label="روابط قانونية">
+                <a href="/services.html">الخدمات والباقات</a>
+                <a href="/terms.html">شروط الاستخدام</a>
+                <a href="/privacy.html">سياسة الخصوصية</a>
+            </nav>
+            <p class="muted small footer-note">GeoSave منصة تقنية وسيطة وليست طرفاً في أي اتفاق بين المستخدمين، ولا تتحمل مسؤولية أي ضياع أو تلف أو تعويض.</p>
             <p class="muted small">&copy; <span data-year>2026</span> GeoSave. جميع الحقوق محفوظة.</p>
         </div>
     </footer>

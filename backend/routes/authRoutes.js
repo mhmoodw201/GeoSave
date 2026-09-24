@@ -7,7 +7,8 @@ const User = require('../models/userModel');
 const HttpError = require('../utils/httpError');
 const asyncHandler = require('../utils/asyncHandler');
 const { requireString, requireEmail, requirePassword } = require('../utils/validators');
-const { optionalAuth, setAuthCookie, clearAuthCookie } = require('../middleware/auth');
+const { optionalAuth, setAuthCookie, clearAuthCookie, toSessionUser } = require('../middleware/auth');
+const { TERMS_VERSION } = require('../../shared/business');
 const { authLimiter } = require('../middleware/security');
 
 const router = express.Router();
@@ -15,9 +16,6 @@ const BCRYPT_ROUNDS = 12;
 // هاش وهمي يُستخدم عند عدم وجود البريد حتى يبقى زمن الاستجابة متساوياً (يمنع كشف الحسابات)
 const DUMMY_HASH = bcrypt.hashSync('geosave-dummy-password', BCRYPT_ROUNDS);
 
-function publicUser(user) {
-    return { id: String(user._id), name: user.name, email: user.email, role: user.role || 'user' };
-}
 
 // تسجيل مستخدم جديد
 router.post('/register', authLimiter, asyncHandler(async (req, res) => {
@@ -25,6 +23,9 @@ router.post('/register', authLimiter, asyncHandler(async (req, res) => {
     const name = requireString(body.name, 'الاسم', { min: 2, max: 60 });
     const email = requireEmail(body.email);
     const password = requirePassword(body.password);
+    if (body.acceptTerms !== true) {
+        throw new HttpError(400, 'يجب الموافقة على شروط الاستخدام وسياسة الخصوصية لإنشاء حساب.');
+    }
 
     if (await User.exists({ email })) {
         throw new HttpError(409, 'هذا البريد الإلكتروني مسجل مسبقاً.');
@@ -33,14 +34,20 @@ router.post('/register', authLimiter, asyncHandler(async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
     let user;
     try {
-        user = await User.create({ name, email, password: hashedPassword });
+        user = await User.create({
+            name,
+            email,
+            password: hashedPassword,
+            termsAcceptedAt: new Date(),
+            termsVersion: TERMS_VERSION,
+        });
     } catch (error) {
         if (error && error.code === 11000) throw new HttpError(409, 'هذا البريد الإلكتروني مسجل مسبقاً.');
         throw error;
     }
 
     setAuthCookie(res, user);
-    res.status(201).json({ user: publicUser(user) });
+    res.status(201).json({ user: toSessionUser(user) });
 }));
 
 // تسجيل الدخول
@@ -57,7 +64,7 @@ router.post('/login', authLimiter, asyncHandler(async (req, res) => {
     }
 
     setAuthCookie(res, user);
-    res.json({ user: publicUser(user) });
+    res.json({ user: toSessionUser(user) });
 }));
 
 // تسجيل الخروج

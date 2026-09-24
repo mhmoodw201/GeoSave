@@ -56,6 +56,23 @@ function resolveMongoUri() {
     return null;
 }
 
+// مزود الدفع للخدمات الرقمية: mock (محاكاة للتطوير فقط) | moyasar (بوابة مرخّصة من ساما) | none
+function resolvePayments() {
+    const provider = (process.env.PAYMENT_PROVIDER || (isProduction ? 'none' : 'mock')).toLowerCase();
+    if (!['mock', 'moyasar', 'none'].includes(provider)) {
+        throw new Error(`Unknown PAYMENT_PROVIDER "${provider}". Use mock, moyasar or none.`);
+    }
+    if (provider === 'mock' && isProduction) {
+        throw new Error('PAYMENT_PROVIDER=mock is not allowed in production.');
+    }
+    const publicUrl = (process.env.PUBLIC_URL || '').replace(/\/+$/, '');
+    const moyasarSecretKey = process.env.MOYASAR_SECRET_KEY || '';
+    if (provider === 'moyasar' && (!moyasarSecretKey || !/^https:\/\//.test(publicUrl))) {
+        throw new Error('PAYMENT_PROVIDER=moyasar requires MOYASAR_SECRET_KEY and an https PUBLIC_URL.');
+    }
+    return { provider, publicUrl, moyasarSecretKey };
+}
+
 const config = Object.freeze({
     env,
     isProduction,
@@ -72,6 +89,7 @@ const config = Object.freeze({
     authCookieName: 'geosave_token',
     defaultRadiusKm: 5,
     maxRadiusKm: 50,
+    payments: Object.freeze(resolvePayments()),
 });
 
 module.exports = config;

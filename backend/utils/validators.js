@@ -4,6 +4,7 @@
 
 const mongoose = require('mongoose');
 const HttpError = require('./httpError');
+const { parseIsoDate } = require('../../shared/dates');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -86,7 +87,14 @@ function requireObjectId(value, field = 'المعرّف') {
     return value;
 }
 
+function requireIsoDate(value, field) {
+    const date = parseIsoDate(value);
+    if (!date) throw new HttpError(400, `${field} غير صحيح.`);
+    return value;
+}
+
 module.exports = {
+    requireIsoDate,
     requireString,
     requireEmail,
     requirePassword,

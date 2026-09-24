@@ -29,9 +29,21 @@ Earlier versions of this repository had a **MongoDB Atlas username and password*
 | 15 | Missing security headers; `X-Powered-By` exposed | Low | helmet: CSP, `frame-ancestors 'none'`, `nosniff`, Referrer-Policy, Permissions-Policy, HSTS (production) |
 | 16 | `node_modules` committed; outdated `multer 1.x` with known CVEs | Low | `node_modules` untracked. Dependencies upgraded (`npm audit`: 0 vulnerabilities) |
 
+## Payments and legal records (v3)
+
+* **Server-side pricing:** service prices come only from `shared/business.js`, and any amount sent by the client is ignored. Service keys are checked with `hasOwnProperty`, so prototype keys like `__proto__` are rejected.
+* **Verified activation:** with Moyasar, the server fetches the invoice from the gateway and requires `status = paid`, the exact amount in halalas, the currency, and the matching order id before activating anything. Redirect parameters are never trusted. Activation is atomic and happens once (`appliedAt`), so repeated verification can't extend a service twice.
+* **Mock payments** are refused at startup when `NODE_ENV=production`.
+* **No funds between users:** rent and deposits are exchanged directly between users. The platform has no code path that holds user money.
+* **Evidence of consent:** users, listings and bookings store `termsAcceptedAt` and `termsVersion`. Change `TERMS_VERSION` in `shared/business.js` whenever the terms change materially.
+* **Reviews:** only the two parties of a returned booking can review, once each (unique index). Ratings are updated with atomic `$inc`. Public review responses expose first names only.
+* **Privacy:** the owner's phone number is returned only to the borrower of an *active* booking.
+
 ## Known limitations
 
 * Logging out clears the cookie, but a stolen JWT stays valid until it expires (`SESSION_DAYS`). Keep the lifetime short, or add a token denylist/versioning if needed.
+* The Moyasar integration follows Moyasar's invoice API and is covered by unit tests with a mocked gateway. Test it end to end with Moyasar **test keys** before going live, and consider adding their webhook as a second confirmation path.
+* Legal texts (`frontend/terms.html`, `frontend/privacy.html`) are drafts. They contain placeholders and must be reviewed by a qualified lawyer. A liability disclaimer cannot exclude liability that Saudi law does not allow to be excluded.
 * Uploaded images are stored on local disk. For multi-instance deployments, use object storage (S3, etc.).
 * Always run behind HTTPS in production (`NODE_ENV=production`) and set `TRUST_PROXY` correctly when behind a reverse proxy.
 
