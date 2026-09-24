@@ -152,7 +152,9 @@ function initTabs() {
             next.focus();
         });
     });
-    if (window.location.hash === '#products') select(tabs[1]);
+    const syncWithHash = () => select(window.location.hash === '#products' ? tabs[1] : tabs[0]);
+    window.addEventListener('hashchange', syncWithHash);
+    syncWithHash();
 }
 
 (async () => {
