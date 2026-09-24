@@ -1,36 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://kit.fontawesome.com/377a1ca7db.js" crossorigin="anonymous"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="GeoSave — منصة تأجير محلية تعرض لك المنتجات المتاحة للإيجار بالقرب من موقعك.">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>إنشاء حساب — GeoSave</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preload" href="/assets/fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/assets/fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/assets/css/styles.css">
+    <script type="module" src="/assets/js/pages/register.js"></script>
 </head>
-<body>
-    <header>
-        <h1>Register for GeoSave</h1>
-        <nav>
-            <a href="index.html">Home</a>
-        </nav>
+<body class="page-auth">
+    <a class="skip-link" href="#main">تخطَّ إلى المحتوى</a>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="/" aria-label="GeoSave — الصفحة الرئيسية">
+                <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#pin"/></svg></span>
+                <span class="brand-name">Geo<span>Save</span></span>
+            </a>
+            <button class="icon-btn nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="فتح القائمة">
+                <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#menu"/></svg>
+            </button>
+            <nav id="site-nav" class="site-nav" aria-label="التنقل الرئيسي"></nav>
+        </div>
     </header>
-    <main>
-        <form id="register-form">
-            <label for="name">Name</label>
-            <input type="text" id="name" name="name" required>
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" required>
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required>
-            <button type="submit">Register</button>
-            <p>Already have an account? <a href="login.html">Login here</a></p>
-        </form>
-        
+
+    <main id="main" class="auth-main">
+        <div class="auth-card card">
+            <div class="auth-head">
+                <span class="auth-icon"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#user"/></svg></span>
+                <h1>إنشاء حساب جديد</h1>
+                <p class="muted">انضم إلى GeoSave وابدأ بالتأجير والاستئجار من حولك.</p>
+            </div>
+            <form id="register-form" class="form" novalidate>
+                <div class="field">
+                    <label for="name">الاسم</label>
+                    <div class="input-wrap">
+                        <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#user"/></svg>
+                        <input type="text" id="name" name="name" required minlength="2" maxlength="60" autocomplete="name">
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="email">البريد الإلكتروني</label>
+                    <div class="input-wrap">
+                        <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#mail"/></svg>
+                        <input type="email" id="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" dir="ltr" placeholder="name@example.com">
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="password">كلمة المرور</label>
+                    <div class="input-wrap">
+                        <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#lock"/></svg>
+                        <input type="password" id="password" name="password" required minlength="8" maxlength="72" autocomplete="new-password" dir="ltr" aria-describedby="password-hint">
+                        <button type="button" class="icon-btn input-action" data-toggle-password="password" aria-label="إظهار كلمة المرور" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#eye"/></svg></button>
+                    </div>
+                    <div id="password-strength" class="strength" data-score="0">
+                        <span class="strength-bar" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+                        <span class="strength-label small muted" aria-live="polite"></span>
+                    </div>
+                    <p id="password-hint" class="hint">8 أحرف على الأقل وتحتوي على حروف وأرقام.</p>
+                </div>
+                <div class="field">
+                    <label for="confirm">تأكيد كلمة المرور</label>
+                    <div class="input-wrap">
+                        <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#lock"/></svg>
+                        <input type="password" id="confirm" name="confirm" required minlength="8" maxlength="72" autocomplete="new-password" dir="ltr">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block btn-lg">إنشاء الحساب</button>
+            </form>
+            <p class="auth-switch">لديك حساب بالفعل؟ <a id="login-link" href="/login.html">سجّل الدخول</a></p>
+        </div>
     </main>
-    <footer>
-        <p>&copy; 2024 GeoSave. جميع الحقوق محفوظة.</p>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <a class="brand brand-sm" href="/">
+                <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#pin"/></svg></span>
+                <span class="brand-name">Geo<span>Save</span></span>
+            </a>
+            <p class="muted">استأجر ما تحتاجه من جيرانك، ووفّر أكثر.</p>
+            <p class="muted small">&copy; <span data-year>2026</span> GeoSave. جميع الحقوق محفوظة.</p>
+        </div>
     </footer>
-    <script src="script.js"></script>
 </body>
 </html>
