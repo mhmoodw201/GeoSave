@@ -9,7 +9,11 @@ import { init as initLogin } from '../assets/js/pages/login.js';
 import { init as initRegister } from '../assets/js/pages/register.js';
 import { init as initAddProduct } from '../assets/js/pages/add-product.js';
 import { init as initAccount } from '../assets/js/pages/account.js';
+import { init as initServices } from '../assets/js/pages/services.js';
+import { init as initStatic } from '../assets/js/pages/static.js';
+import { init as initPaymentReturn } from '../assets/js/pages/payment-return.js';
 import { resetSession } from '../assets/js/session.js';
+import { openDialog } from '../assets/js/ui.js';
 
 const { DEMO_CENTER } = demoData;
 const TEMPLATES = window.__GEOSAVE_TEMPLATES__;
@@ -19,6 +23,10 @@ const PAGES = {
     '/register.html': initRegister,
     '/add-product.html': initAddProduct,
     '/account.html': initAccount,
+    '/services.html': initServices,
+    '/terms.html': initStatic,
+    '/privacy.html': initStatic,
+    '/payment-return.html': initPaymentReturn,
 };
 
 const spa = window.__GEOSAVE_SPA__;
@@ -38,8 +46,24 @@ function render() {
     const main = document.getElementById('main');
     main.outerHTML = template.main; // قوالب ثابتة من ملفات المشروع وليست بيانات مستخدم
     document.title = template.title;
-    window.scrollTo(0, 0);
     PAGES[spa.path]?.();
+    const anchor = spa.hash && /^#[\w-]+$/.test(spa.hash) ? document.getElementById(spa.hash.slice(1)) : null;
+    if (anchor && anchor.tagName !== 'BUTTON') anchor.scrollIntoView({ block: 'start' });
+    else window.scrollTo(0, 0);
+}
+
+// الروابط التي تفتح في تبويب جديد (مثل الشروط داخل نموذج الحجز) تُعرض في نافذة
+// حتى لا يفقد الزائر ما كان يكتبه
+function openInDialog(url) {
+    const target = new URL(url, 'https://geosave.demo/');
+    const template = TEMPLATES[target.pathname];
+    if (!template) return false;
+    const holder = document.createElement('div');
+    holder.className = 'dialog-page';
+    holder.innerHTML = template.main.replace('id="main"', ''); // قالب ثابت من ملفات المشروع
+    openDialog(holder, { label: template.title, className: 'dialog-lg' });
+    if (target.hash) holder.querySelector(target.hash)?.scrollIntoView({ block: 'start' });
+    return true;
 }
 
 function go(url, { replace = false } = {}) {
@@ -66,6 +90,7 @@ document.addEventListener('click', (event) => {
         document.getElementById(href.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (href.startsWith('/')) {
         event.preventDefault();
+        if (link.target === '_blank' && openInDialog(href)) return;
         go(href);
     }
 });

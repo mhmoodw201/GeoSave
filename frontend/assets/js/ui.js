@@ -46,6 +46,52 @@ export function formatPrice(value) {
     return `${numberFormat.format(Number(value) || 0)} ر.س`;
 }
 
+/** عنصر السعر: "مجاناً" للإعارة أو "X ر.س / يوم" للتأجير */
+export function priceTag(pricePerDay) {
+    if (!Number(pricePerDay)) {
+        return el('span', { class: 'price price-free' }, el('strong', { text: 'إعارة مجانية' }));
+    }
+    return el('span', { class: 'price' }, el('strong', { text: formatPrice(pricePerDay) }), el('small', { text: ' / يوم' }));
+}
+
+/** تقييم بالنجوم: ★ 4.7 (12) أو "جديد" */
+export function ratingBadge(rating, count, { compact = false } = {}) {
+    if (!count) return el('span', { class: 'rating rating-new', title: 'لا توجد تقييمات بعد' }, 'جديد');
+    const label = `${numberFormat.format(rating)} من 5 (${count} ${count === 1 ? 'تقييم' : 'تقييمات'})`;
+    return el('span', { class: 'rating', title: label, 'aria-label': label },
+        icon('star', 'rating-star'),
+        el('span', { text: numberFormat.format(rating) }),
+        compact ? null : el('span', { class: 'rating-count', text: `(${count})` }));
+}
+
+// ---------- التواريخ (يوم فقط YYYY-MM-DD بتوقيت الجهاز) ----------
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function todayIso() {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10);
+}
+
+export function addDaysIso(iso, days) {
+    return new Date(Date.parse(`${iso}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
+}
+
+export function diffDaysIso(fromIso, toIso) {
+    return Math.round((Date.parse(`${toIso}T00:00:00Z`) - Date.parse(`${fromIso}T00:00:00Z`)) / DAY_MS);
+}
+
+export function formatIsoDate(iso) {
+    const date = new Date(`${iso}T12:00:00Z`);
+    return Number.isNaN(date.getTime()) ? '' : dateFormat.format(date);
+}
+
+export function daysLabel(days) {
+    if (days === 1) return 'يوم واحد';
+    if (days === 2) return 'يومان';
+    if (days >= 3 && days <= 10) return `${days} أيام`;
+    return `${days} يوماً`;
+}
+
 export function formatDistance(meters) {
     const m = Number(meters) || 0;
     if (m < 1000) return `${Math.max(1, Math.round(m))} م`;

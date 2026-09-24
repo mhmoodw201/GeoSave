@@ -30,6 +30,15 @@ const userSchema = new mongoose.Schema(
             enum: ['user', 'admin'],
             default: 'user',
         },
+        // الموافقة على شروط الاستخدام وسياسة الخصوصية (إثبات قانوني بالتاريخ والإصدار)
+        termsAcceptedAt: Date,
+        termsVersion: String,
+        // التقييمات: نخزن المجموع والعدد ونحسب المتوسط عند العرض (تحديث ذري بـ $inc)
+        ratingSum: { type: Number, default: 0, min: 0 },
+        ratingCount: { type: Number, default: 0, min: 0 },
+        // الباقة المدفوعة
+        plan: { type: String, enum: ['free', 'plus'], default: 'free' },
+        planUntil: Date,
     },
     { timestamps: true }
 );

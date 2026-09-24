@@ -1,13 +1,16 @@
-// pages/home.js — الصفحة الرئيسية: البحث عن المنتجات القريبة وعرض التفاصيل والحجز
+// pages/home.js — الصفحة الرئيسية: البحث عن الأغراض القريبة وعرض التفاصيل والحجز
 
 import { api } from '../api.js';
 import { getPosition } from '../geo.js';
 import { initPage, getServerInfo } from '../session.js';
 import {
-    el, icon, toast, flash, openDialog, confirmDialog, setBusy, emptyState, skeletonCards,
-    productImage, formatPrice, formatDistance,
+    el, icon, toast, flash, openDialog, confirmDialog, setBusy, emptyState, skeletonCards, showFormError,
+    productImage, formatPrice, formatDistance, formatDate, priceTag, ratingBadge,
+    todayIso, addDaysIso, diffDaysIso, daysLabel,
 } from '../ui.js';
-import { navigate, currentSearch, currentHash } from '../nav.js';
+import { navigate } from '../nav.js';
+
+const MAX_LEAD_DAYS = 60;
 
 export function init() {
     const state = {
@@ -31,6 +34,7 @@ export function init() {
             q: String(data.get('q') || '').trim(),
             radius: String(data.get('radius') || '5'),
             available: data.get('available') ? 'true' : '',
+            free: data.get('free') ? 'true' : '',
         };
     }
 
@@ -39,9 +43,15 @@ export function init() {
         locationStatus.replaceChildren(icon(kind === 'error' ? 'alert' : 'locate'), el('span', { text }), ...(action ? [action] : []));
     }
 
+    function statusBadge(product) {
+        const booked = product.status === 'booked';
+        return el('span', { class: `badge ${booked ? 'badge-muted' : 'badge-success'}`, text: booked ? 'محجوز' : 'متاح' });
+    }
+
     function productCard(product) {
         const booked = product.status === 'booked';
-        const card = el('article', { class: `card product-card ${booked ? 'is-booked' : ''}` },
+        const free = !Number(product.pricePerDay);
+        return el('article', { class: `card product-card ${booked ? 'is-booked' : ''} ${product.isFeatured ? 'is-featured' : ''}` },
             el('button', {
                 type: 'button',
                 class: 'card-hit',
@@ -50,32 +60,120 @@ export function init() {
             }),
             el('div', { class: 'card-media' },
                 productImage(product.image, product.name),
-                el('span', { class: `badge ${booked ? 'badge-muted' : 'badge-success'}`, text: booked ? 'محجوز' : 'متاح' }),
+                el('div', { class: 'card-badges' },
+                    statusBadge(product),
+                    product.isFeatured ? el('span', { class: 'badge badge-featured' }, icon('sparkles'), 'مميز') : null,
+                    free ? el('span', { class: 'badge badge-free' }, icon('gift'), 'مجاني') : null),
                 el('span', { class: 'chip chip-distance' }, icon('pin'), formatDistance(product.distance))),
             el('div', { class: 'card-body' },
                 el('h3', { class: 'card-title', text: product.name }),
-                el('p', { class: 'card-meta' }, icon('user'), el('span', { text: product.owner?.name || 'مستخدم' })),
+                el('p', { class: 'card-meta' },
+                    icon('user'),
+                    el('span', { class: 'card-owner', text: product.owner?.name || 'مستخدم' }),
+                    product.owner?.plus ? el('span', { class: 'plus-mark', title: 'مشترك Plus', text: 'Plus' }) : null,
+                    ratingBadge(product.owner?.rating, product.owner?.ratingCount, { compact: true })),
                 el('div', { class: 'card-footer' },
-                    el('span', { class: 'price' }, el('strong', { text: formatPrice(product.pricePerDay) }), el('small', { text: ' / يوم' })))));
-        return card;
+                    priceTag(product.pricePerDay),
+                    Number(product.deposit) ? el('span', { class: 'card-deposit', text: `تأمين ${formatPrice(product.deposit)}` }) : null)));
+    }
+
+    // تقييمات المالك تُحمّل عند فتح التفاصيل
+    async function loadOwnerReviews(ownerId, container) {
+        try {
+            const { reviews } = await api(`/users/${encodeURIComponent(ownerId)}/reviews`);
+            if (!reviews.length) {
+                container.replaceChildren(el('p', { class: 'muted small', text: 'لا توجد تقييمات بعد لهذا المستخدم.' }));
+                return;
+            }
+            container.replaceChildren(...reviews.slice(0, 3).map((review) => el('figure', { class: 'review' },
+                el('div', { class: 'review-head' },
+                    el('span', { class: 'stars', 'aria-label': `${review.rating} من 5` }, '★'.repeat(review.rating), el('span', { class: 'stars-off', text: '★'.repeat(5 - review.rating) })),
+                    el('span', { class: 'muted small', text: `${review.reviewerName} · ${formatDate(review.createdAt)}` })),
+                review.comment ? el('blockquote', { text: review.comment }) : null)));
+        } catch {
+            container.replaceChildren();
+        }
+    }
+
+    function bookingForm(product) {
+        const today = todayIso();
+        const maxDays = product.maxDays || 7;
+        const start = el('input', { type: 'date', id: 'booking-start', name: 'startDate', required: true, min: today, max: addDaysIso(today, MAX_LEAD_DAYS), value: today });
+        const end = el('input', { type: 'date', id: 'booking-end', name: 'endDate', required: true, min: today, value: addDaysIso(today, Math.min(2, maxDays) - 1) });
+        const summary = el('p', { class: 'booking-summary', 'aria-live': 'polite' });
+        const accept = el('input', { type: 'checkbox', id: 'booking-accept', name: 'acceptTerms', required: true });
+        const submit = el('button', { type: 'submit', class: 'btn btn-primary btn-block' }, icon('calendar'), Number(product.pricePerDay) ? 'احجز الآن' : 'اطلب الاستعارة');
+
+        const syncDates = () => {
+            end.min = start.value || today;
+            end.max = addDaysIso(start.value || today, maxDays - 1);
+            if (end.value < end.min) end.value = end.min;
+            if (end.value > end.max) end.value = end.max;
+            const days = diffDaysIso(start.value, end.value) + 1;
+            const total = Number(product.pricePerDay) * days;
+            summary.textContent = Number.isFinite(days) && days > 0
+                ? `المدة: ${daysLabel(days)}${Number(product.pricePerDay) ? ` · الإجمالي المتوقع ${formatPrice(total)} يُدفع للمالك مباشرة` : ' · مجاناً'}`
+                : '';
+        };
+        start.addEventListener('change', syncDates);
+        end.addEventListener('change', syncDates);
+        syncDates();
+
+        const formEl = el('form', { class: 'form booking-form', novalidate: true },
+            el('h3', { class: 'booking-title', text: 'حدد فترة الاستعارة' }),
+            el('div', { class: 'field-row' },
+                el('div', { class: 'field' }, el('label', { for: 'booking-start', text: 'تاريخ الاستلام' }), start),
+                el('div', { class: 'field' }, el('label', { for: 'booking-end', text: 'تاريخ الإرجاع' }), end)),
+            summary,
+            el('label', { class: 'check' }, accept,
+                el('span', {},
+                    'أقر بأن GeoSave منصة تقنية وسيطة فقط، وغير مسؤولة عن أي ضياع أو تلف أو تعويض، وأن الاتفاق والتسليم والتأمين بيني وبين المالك مباشرة، وأوافق على ',
+                    el('a', { href: '/terms.html', target: '_blank', rel: 'noopener', text: 'شروط الاستخدام' }), '.')),
+            submit);
+
+        formEl.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            showFormError(formEl, '');
+            if (!start.value || !end.value) {
+                showFormError(formEl, 'حدد تاريخ الاستلام والإرجاع.');
+                return;
+            }
+            if (!accept.checked) {
+                showFormError(formEl, 'يجب الإقرار بالشروط قبل الحجز.');
+                return;
+            }
+            setBusy(submit, true, 'جارٍ الحجز…');
+            try {
+                await api('/bookings', {
+                    method: 'POST',
+                    body: { productId: product._id, startDate: start.value, endDate: end.value, acceptTerms: true },
+                });
+                flash('تم الحجز بنجاح! تواصل مع المالك عبر واتساب من صفحة حسابك.');
+                navigate('/account.html');
+            } catch (error) {
+                showFormError(formEl, error.message);
+                setBusy(submit, false);
+                if (error.status === 409) search();
+            }
+        });
+        return formEl;
     }
 
     function showDetails(product) {
         const isOwner = state.user && product.owner && String(product.owner._id) === state.user.id;
         const isAdmin = state.user?.role === 'admin';
         const booked = product.status === 'booked';
+        const free = !Number(product.pricePerDay);
 
         const actions = el('div', { class: 'detail-actions' });
         if (!state.user) {
             actions.append(el('a', { class: 'btn btn-primary btn-block', href: '/login.html?next=%2F' }, icon('login'), 'سجّل الدخول للحجز'));
         } else if (!isOwner && !booked) {
-            const bookBtn = el('button', { type: 'button', class: 'btn btn-primary btn-block' }, icon('calendar'), 'احجز الآن');
-            bookBtn.addEventListener('click', () => book(product, bookBtn));
-            actions.append(bookBtn);
+            actions.append(bookingForm(product));
         } else if (booked && !isOwner) {
-            actions.append(el('p', { class: 'notice', text: 'هذا المنتج محجوز حالياً.' }));
+            actions.append(el('p', { class: 'notice', text: 'هذا الغرض محجوز حالياً. جرّب لاحقاً.' }));
         } else if (isOwner) {
-            actions.append(el('p', { class: 'notice', text: 'هذا إعلانك. يمكنك إدارته من صفحة حسابي.' }));
+            actions.append(el('p', { class: 'notice' }, 'هذا إعلانك. يمكنك إدارته وتمييزه من ', el('a', { href: '/account.html#products', text: 'صفحة حسابي' }), '.'));
         }
         if (isOwner || isAdmin) {
             const deleteBtn = el('button', { type: 'button', class: 'btn btn-danger-ghost btn-block' }, icon('trash'), 'حذف الإعلان');
@@ -83,31 +181,33 @@ export function init() {
             actions.append(deleteBtn);
         }
 
+        const reviewsBox = el('div', { class: 'reviews' }, el('p', { class: 'muted small', text: 'جارٍ تحميل التقييمات…' }));
         const content = el('div', { class: 'detail' },
             el('div', { class: 'detail-media' }, productImage(product.image, product.name)),
             el('div', { class: 'detail-body' },
-                el('span', { class: `badge ${booked ? 'badge-muted' : 'badge-success'}`, text: booked ? 'محجوز' : 'متاح' }),
+                el('div', { class: 'card-badges static' },
+                    statusBadge(product),
+                    product.isFeatured ? el('span', { class: 'badge badge-featured' }, icon('sparkles'), 'مميز') : null,
+                    free ? el('span', { class: 'badge badge-free' }, icon('gift'), 'إعارة مجانية') : null),
                 el('h2', { class: 'detail-title', text: product.name }),
-                el('p', { class: 'detail-price' }, el('strong', { text: formatPrice(product.pricePerDay) }), ' / يوم'),
+                el('div', { class: 'detail-price' }, priceTag(product.pricePerDay)),
                 el('p', { class: 'detail-description', text: product.description }),
                 el('ul', { class: 'detail-facts' },
-                    el('li', {}, icon('user'), el('span', { text: product.owner?.name || 'مستخدم' })),
-                    el('li', {}, icon('pin'), el('span', { text: `يبعد عنك ${formatDistance(product.distance)}` }))),
+                    el('li', {}, icon('pin'), el('span', { text: `يبعد عنك ${formatDistance(product.distance)}` })),
+                    el('li', {}, icon('clock'), el('span', { text: `أقصى مدة: ${daysLabel(product.maxDays || 7)}` })),
+                    el('li', {}, icon('shield'), el('span', { text: Number(product.deposit) ? `تأمين مسترد ${formatPrice(product.deposit)} يُتفق عليه مع المالك مباشرة` : 'بدون مبلغ تأمين' }))),
+                el('section', { class: 'owner-box', 'aria-label': 'صاحب الغرض' },
+                    el('div', { class: 'owner-head' },
+                        el('span', { class: 'owner-avatar', 'aria-hidden': 'true', text: (product.owner?.name || '?').trim().charAt(0) }),
+                        el('div', {},
+                            el('strong', { text: product.owner?.name || 'مستخدم' }),
+                            product.owner?.plus ? el('span', { class: 'plus-mark', text: 'Plus' }) : null,
+                            el('div', {}, ratingBadge(product.owner?.rating, product.owner?.ratingCount)))),
+                    reviewsBox),
                 actions));
         openDialog(content, { label: product.name, className: 'dialog-lg' });
-    }
-
-    async function book(product, button) {
-        setBusy(button, true, 'جارٍ الحجز…');
-        try {
-            await api('/bookings', { method: 'POST', body: { productId: product._id } });
-            flash('تم الحجز بنجاح! تواصل مع المالك من صفحة حسابك.');
-            navigate('/account.html');
-        } catch (error) {
-            toast(error.message, 'error');
-            setBusy(button, false);
-            if (error.status === 409) search();
-        }
+        if (product.owner?._id) loadOwnerReviews(product.owner._id, reviewsBox);
+        else reviewsBox.replaceChildren();
     }
 
     async function removeProduct(product, button) {
@@ -141,7 +241,9 @@ export function init() {
         const f = filters();
         try {
             const data = await api('/products', {
-                query: { lat: state.position.lat, lng: state.position.lng, radius: f.radius, q: f.q, available: f.available, page: state.page },
+                query: {
+                    lat: state.position.lat, lng: state.position.lng, radius: f.radius, q: f.q, available: f.available, free: f.free, page: state.page,
+                },
             });
             if (requestId !== state.requestId) return; // تم إرسال بحث أحدث
 
@@ -152,8 +254,8 @@ export function init() {
                 const actions = el('div', { class: 'empty-actions' },
                     el('a', { class: 'btn btn-primary', href: '/add-product.html' }, icon('plus'), 'أضف إعلاناً'));
                 grid.replaceChildren(emptyState('box', 'لا توجد إعلانات قريبة',
-                    `لم نجد منتجات ضمن ${f.radius} كم من موقعك. جرّب توسيع نطاق البحث أو أضف إعلانك الأول.`, actions));
-                if (!f.q && !f.available && (await getServerInfo()).demo) {
+                    `لم نجد أغراضاً ضمن ${f.radius} كم من موقعك تطابق البحث. جرّب توسيع النطاق أو أضف إعلانك الأول.`, actions));
+                if (!f.q && !f.available && !f.free && (await getServerInfo()).demo) {
                     const seedBtn = el('button', { type: 'button', class: 'btn btn-secondary' }, icon('box'), 'أضف منتجات تجريبية قرب موقعي');
                     seedBtn.addEventListener('click', () => seedNearby(seedBtn));
                     actions.append(seedBtn);
@@ -209,7 +311,7 @@ export function init() {
         } catch (error) {
             setLocationStatus('error', error.message,
                 el('button', { type: 'button', class: 'link-btn', onclick: locate, text: 'إعادة المحاولة' }));
-            grid.replaceChildren(emptyState('pin', 'نحتاج إلى موقعك', 'يعتمد GeoSave على موقعك لعرض المنتجات المتاحة بالقرب منك. لا نشارك موقعك الدقيق مع أي أحد.'));
+            grid.replaceChildren(emptyState('pin', 'نحتاج إلى موقعك', 'يعتمد GeoSave على موقعك لعرض الأغراض المتاحة بالقرب منك. لا نشارك موقعك الدقيق مع أي أحد.'));
         }
     }
 

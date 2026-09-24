@@ -11,7 +11,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test --test-reporter=spec tests/*.test.js",
-    "migrate": "node scripts/migrate-v2.js",
+    "migrate": "node scripts/migrate.js",
     "make-admin": "node scripts/make-admin.js",
     "build:demo": "node scripts/build-demo.js"
   },

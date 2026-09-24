@@ -26,23 +26,55 @@ const ICONS = {
     hammer: '<path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/><path d="m18 15 4-4"/><path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2.96l.92.82A6.18 6.18 0 0 1 12 8.4V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5"/>',
 };
 
-// dx/dy: الإزاحة بالأمتار عن موقع الزائر (شرق/شمال)
+// dx/dy: الإزاحة بالأمتار عن موقع الزائر (شرق/شمال). pricePerDay = 0 تعني إعارة مجانية.
 const DEMO_PRODUCTS = [
-    { key: 'tent', icon: 'tent', colors: ['#0f766e', '#134e4a'], owner: 'khalid', name: 'خيمة رحلات عائلية لـ 6 أشخاص', description: 'خيمة مقاومة للماء والرياح مع أوتاد وحبال وحقيبة حمل. مناسبة للكشتات والرحلات البرية، تُركّب خلال 10 دقائق.', pricePerDay: 60, dx: 320, dy: 210 },
-    { key: 'drill', icon: 'drill', colors: ['#c2410c', '#7c2d12'], owner: 'fahad', name: 'دريل كهربائي بوش مع طقم ريش', description: 'دريل احترافي 18 فولت مع بطاريتين وشاحن وطقم ريش للخشب والحديد والخرسانة.', pricePerDay: 20, dx: -540, dy: 380 },
-    { key: 'camera', icon: 'camera', colors: ['#1d4ed8', '#1e3a8a'], owner: 'noura', name: 'كاميرا كانون EOS 250D مع عدسة 18-55', description: 'كاميرا بحالة ممتازة مع بطارية إضافية وبطاقة ذاكرة 64GB وحقيبة. مثالية للمناسبات والسفر.', pricePerDay: 120, dx: 900, dy: -650 },
-    { key: 'bike', icon: 'bike', colors: ['#15803d', '#14532d'], owner: 'fahad', name: 'دراجة هوائية جبلية مقاس 27.5', description: 'دراجة جبلية 21 سرعة مع خوذة وقفل. مناسبة لممشى الحي والمسارات الخفيفة.', pricePerDay: 35, dx: -1200, dy: -300 },
-    { key: 'projector', icon: 'projector', colors: ['#7c3aed', '#4c1d95'], owner: 'khalid', name: 'بروجكتر إبسون للعروض والسهرات', description: 'بروجكتر Full HD بسطوع 3400 لومن مع شاشة عرض 100 بوصة ووصلة HDMI.', pricePerDay: 75, dx: 1500, dy: 900, bookedBy: 'noura' },
-    { key: 'speaker', icon: 'speaker', colors: ['#be123c', '#881337'], owner: 'noura', name: 'سماعة JBL PartyBox مع ميكروفون', description: 'سماعة بلوتوث قوية بإضاءة LED وبطارية تدوم 12 ساعة، مع ميكروفون لاسلكي.', pricePerDay: 50, dx: -2100, dy: 1400 },
-    { key: 'gamepad', icon: 'gamepad', colors: ['#0369a1', '#0c4a6e'], owner: 'demo', name: 'بلايستيشن 5 مع يدّين وثلاث ألعاب', description: 'جهاز PS5 نسخة القرص مع يدّين DualSense وثلاث ألعاب (FIFA، Gran Turismo، Spider-Man).', pricePerDay: 45, dx: 2600, dy: -1800 },
-    { key: 'cooler', icon: 'cooler', colors: ['#0891b2', '#164e63'], owner: 'khalid', name: 'ثلاجة رحلات كهربائية 40 لتر', description: 'ثلاجة تعمل على ولاعة السيارة والكهرباء المنزلية، تبريد حتى -18 درجة.', pricePerDay: 30, dx: -3100, dy: -2200 },
-    { key: 'hammer', icon: 'hammer', colors: ['#a16207', '#713f12'], owner: 'demo', name: 'طقم عدة نجارة متكامل', description: 'شنطة عدة فيها مطرقة ومفكات ومنشار يدوي ومتر وميزان ماء. مناسبة لأعمال الصيانة المنزلية.', pricePerDay: 25, dx: 3800, dy: 1200 },
+    { key: 'tent', icon: 'tent', colors: ['#0f766e', '#134e4a'], owner: 'khalid', name: 'خيمة رحلات عائلية لـ 6 أشخاص', description: 'خيمة مقاومة للماء والرياح مع أوتاد وحبال وحقيبة حمل. مناسبة للكشتات والرحلات البرية، تُركّب خلال 10 دقائق.', pricePerDay: 60, deposit: 200, maxDays: 7, dx: 320, dy: 210 },
+    { key: 'drill', icon: 'drill', colors: ['#c2410c', '#7c2d12'], owner: 'fahad', name: 'دريل كهربائي بوش مع طقم ريش', description: 'دريل 18 فولت مع بطاريتين وشاحن وطقم ريش للخشب والحديد والخرسانة. أعيره للجيران مجاناً.', pricePerDay: 0, deposit: 0, maxDays: 3, dx: -540, dy: 380 },
+    { key: 'camera', icon: 'camera', colors: ['#1d4ed8', '#1e3a8a'], owner: 'noura', name: 'كاميرا كانون EOS 250D مع عدسة 18-55', description: 'كاميرا بحالة ممتازة مع بطارية إضافية وبطاقة ذاكرة 64GB وحقيبة. مثالية للمناسبات والسفر.', pricePerDay: 120, deposit: 1000, maxDays: 5, featuredDays: 7, dx: 900, dy: -650 },
+    { key: 'bike', icon: 'bike', colors: ['#15803d', '#14532d'], owner: 'fahad', name: 'دراجة هوائية جبلية مقاس 27.5', description: 'دراجة جبلية 21 سرعة مع خوذة وقفل. مناسبة لممشى الحي والمسارات الخفيفة.', pricePerDay: 35, deposit: 150, maxDays: 7, dx: -1200, dy: -300 },
+    { key: 'projector', icon: 'projector', colors: ['#7c3aed', '#4c1d95'], owner: 'khalid', name: 'بروجكتر إبسون للعروض والسهرات', description: 'بروجكتر Full HD بسطوع 3400 لومن مع شاشة عرض 100 بوصة ووصلة HDMI.', pricePerDay: 75, deposit: 500, maxDays: 3, dx: 1500, dy: 900 },
+    { key: 'speaker', icon: 'speaker', colors: ['#be123c', '#881337'], owner: 'noura', name: 'سماعة JBL PartyBox مع ميكروفون', description: 'سماعة بلوتوث قوية بإضاءة LED وبطارية تدوم 12 ساعة، مع ميكروفون لاسلكي.', pricePerDay: 50, deposit: 300, maxDays: 3, dx: -2100, dy: 1400 },
+    { key: 'gamepad', icon: 'gamepad', colors: ['#0369a1', '#0c4a6e'], owner: 'demo', name: 'بلايستيشن 5 مع يدّين وثلاث ألعاب', description: 'جهاز PS5 نسخة القرص مع يدّين DualSense وثلاث ألعاب (FIFA، Gran Turismo، Spider-Man).', pricePerDay: 45, deposit: 500, maxDays: 7, dx: 2600, dy: -1800 },
+    { key: 'cooler', icon: 'cooler', colors: ['#0891b2', '#164e63'], owner: 'khalid', name: 'ثلاجة رحلات كهربائية 40 لتر', description: 'ثلاجة تعمل على ولاعة السيارة والكهرباء المنزلية، تبريد حتى -18 درجة. إعارة مجانية لأهل الحي.', pricePerDay: 0, deposit: 100, maxDays: 5, dx: -3100, dy: -2200 },
+    { key: 'hammer', icon: 'hammer', colors: ['#a16207', '#713f12'], owner: 'demo', name: 'طقم عدة نجارة متكامل', description: 'شنطة عدة فيها مطرقة ومفكات ومنشار يدوي ومتر وميزان ماء. مناسبة لأعمال الصيانة المنزلية.', pricePerDay: 0, deposit: 0, maxDays: 3, dx: 3800, dy: 1200 },
 ];
 
-// الحجوزات الجاهزة: المستخدم التجريبي حجز الخيمة، ونورة حجزت البروجكتر
+// الحجوزات الجاهزة: startOffset بالأيام من اليوم، days = مدة الحجز.
+// النشطة تُنشأ لكل منطقة، والمنتهية (مع التقييمات) مرة واحدة فقط.
 const DEMO_BOOKINGS = [
-    { product: 'tent', user: 'demo' },
-    { product: 'projector', user: 'noura' },
+    { product: 'tent', user: 'demo', status: 'active', startOffset: -2, days: 4 },
+    { product: 'projector', user: 'noura', status: 'active', startOffset: 0, days: 2 },
+    // غرض المستخدم التجريبي عند خالد وتجاوز موعد إرجاعه (يظهر تنبيه "متأخر")
+    { product: 'hammer', user: 'khalid', status: 'active', startOffset: -5, days: 3 },
+];
+
+const DEMO_HISTORY = [
+    {
+        product: 'gamepad', user: 'fahad', startOffset: -20, days: 3,
+        reviews: [
+            { by: 'fahad', rating: 5, comment: 'الجهاز نظيف والتسليم في الموعد، شكراً محمود.' },
+            { by: 'demo', rating: 5, comment: 'أرجعه بحالة ممتازة وقبل الموعد.' },
+        ],
+    },
+    {
+        product: 'drill', user: 'khalid', startOffset: -15, days: 2,
+        reviews: [
+            { by: 'khalid', rating: 5, comment: 'تعامل راقٍ والدريل ممتاز.' },
+            { by: 'fahad', rating: 4, comment: 'التزم بالموعد.' },
+        ],
+    },
+    {
+        product: 'camera', user: 'fahad', startOffset: -12, days: 3,
+        reviews: [
+            { by: 'fahad', rating: 5, comment: 'الكاميرا مثل الجديدة، أنصح بالتعامل مع نورة.' },
+            { by: 'noura', rating: 4, comment: '' },
+        ],
+    },
+    {
+        // المستخدم التجريبي لم يقيّم بعد — يظهر له طلب التقييم
+        product: 'speaker', user: 'demo', startOffset: -8, days: 2,
+        reviews: [{ by: 'noura', rating: 5, comment: 'مستعير محترم وأرجع السماعة نظيفة.' }],
+    },
 ];
 
 const DEMO_PHONE = '966500000000';
@@ -70,6 +102,7 @@ module.exports = {
     DEMO_USERS,
     DEMO_PRODUCTS,
     DEMO_BOOKINGS,
+    DEMO_HISTORY,
     DEMO_PHONE,
     offsetPoint,
     illustrationSvg,

@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="GeoSave — منصة تأجير محلية تعرض لك المنتجات المتاحة للإيجار بالقرب من موقعك.">
+    <meta name="description" content="التحقق من عملية الدفع">
     <meta name="theme-color" content="#0f766e">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>تسجيل الدخول — GeoSave</title>
+    <title>التحقق من الدفع — GeoSave</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="preload" href="/assets/fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/assets/fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/assets/css/styles.css">
-    <script type="module" src="/assets/js/pages/login.js"></script>
+    <script type="module" src="/assets/js/pages/payment-return.js"></script>
 </head>
-<body class="page-auth">
+<body class="page-form">
     <a class="skip-link" href="#main">تخطَّ إلى المحتوى</a>
     <header class="site-header">
         <div class="container header-inner">
@@ -29,34 +29,12 @@
     </header>
 
     <main id="main" class="auth-main">
-        <div class="auth-card card">
-            <div class="auth-head">
-                <span class="auth-icon"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#login"/></svg></span>
-                <h1>تسجيل الدخول</h1>
-                <p class="muted">أهلاً بعودتك! سجّل دخولك لإدارة إعلاناتك وحجوزاتك.</p>
-            </div>
-            <form id="login-form" class="form" novalidate>
-                <div class="field">
-                    <label for="email">البريد الإلكتروني</label>
-                    <div class="input-wrap">
-                        <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#mail"/></svg>
-                        <input type="email" id="email" name="email" required maxlength="254" autocomplete="email" inputmode="email" dir="ltr" placeholder="name@example.com">
-                    </div>
-                </div>
-                <div class="field">
-                    <label for="password">كلمة المرور</label>
-                    <div class="input-wrap">
-                        <svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#lock"/></svg>
-                        <input type="password" id="password" name="password" required maxlength="128" autocomplete="current-password" dir="ltr">
-                        <button type="button" class="icon-btn input-action" data-toggle-password="password" aria-label="إظهار كلمة المرور" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#eye"/></svg></button>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary btn-block btn-lg">دخول</button>
-            </form>
-            <p class="auth-switch">ليس لديك حساب؟ <a id="register-link" href="/register.html">أنشئ حساباً مجاناً</a></p>
+        <div class="auth-card card center-text" id="payment-result" aria-live="polite">
+            <span class="auth-icon"><svg class="icon" aria-hidden="true"><use href="/assets/icons.svg#clock"/></svg></span>
+            <h1>جارٍ التحقق من الدفع…</h1>
+            <p class="muted">لا تغلق الصفحة.</p>
         </div>
     </main>
-
     <footer class="site-footer">
         <div class="container footer-inner">
             <div class="footer-brand">

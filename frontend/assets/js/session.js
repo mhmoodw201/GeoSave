@@ -33,7 +33,7 @@ export function getCurrentUser() {
 }
 
 // يسمح فقط بإعادة التوجيه إلى صفحات داخلية معروفة (يمنع Open Redirect)
-const SAFE_PAGES = new Set(['/', '/index.html', '/account.html', '/add-product.html']);
+const SAFE_PAGES = new Set(['/', '/index.html', '/account.html', '/add-product.html', '/services.html']);
 export function safeNext(fallback = '/') {
     const next = new URLSearchParams(currentSearch()).get('next');
     return next && SAFE_PAGES.has(next) ? next : fallback;
@@ -82,7 +82,7 @@ function renderNav(user) {
     const path = currentPath().replace(/\/$/, '/index.html');
     const is = (page) => path.endsWith(page);
 
-    const links = [navLink('/', 'الرئيسية', 'home', is('/index.html'))];
+    const links = [navLink('/', 'الرئيسية', 'home', is('/index.html')), navLink('/services.html', 'الخدمات', 'sparkles', is('/services.html'))];
     if (user) {
         links.push(navLink('/add-product.html', 'أضف إعلاناً', 'plus', is('/add-product.html')));
         links.push(navLink('/account.html', 'حسابي', 'user', is('/account.html')));

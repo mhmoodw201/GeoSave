@@ -3,7 +3,7 @@
 import { api } from '../api.js';
 import { initPage, redirectIfLoggedIn, safeNext, resetSession, getServerInfo } from '../session.js';
 import { el, icon, setBusy, showFormError, flash, initPasswordToggles } from '../ui.js';
-import { navigate, currentSearch, currentHash } from '../nav.js';
+import { navigate, currentSearch } from '../nav.js';
 
 export function init() {
     const form = document.getElementById('login-form');

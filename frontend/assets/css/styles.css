@@ -451,7 +451,8 @@ h1, h2, h3 { line-height: 1.45; font-weight: var(--fw-bold); }
 .card-hit:focus-visible { box-shadow: inset 0 0 0 3px var(--brand-500); }
 .card-media { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--surface-2); }
 .card-media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s var(--ease); }
-.card-media .badge { position: absolute; top: 12px; inset-inline-start: 12px; }
+.card-badges { position: absolute; top: 12px; inset-inline-start: 12px; inset-inline-end: 12px; display: flex; flex-wrap: wrap; gap: 6px; pointer-events: none; }
+.card-badges.static { position: static; pointer-events: auto; }
 .chip {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 4px 10px; border-radius: var(--radius-pill); font-size: 0.8rem; font-weight: var(--fw-bold);
@@ -466,7 +467,7 @@ h1, h2, h3 { line-height: 1.45; font-weight: var(--fw-bold); }
 .product-card .card-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .card-meta { display: flex; align-items: center; gap: 6px; color: var(--text-3); font-size: 0.88rem; }
 .card-meta .icon { width: 16px; height: 16px; }
-.card-footer { margin-top: auto; padding-top: 8px; }
+.card-footer { margin-top: auto; padding-top: 8px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
 .price strong { color: var(--primary); font-size: 1.15rem; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
 .price small { color: var(--text-3); font-size: 0.85rem; }
 .product-card.is-booked .card-media img { filter: grayscale(0.8); opacity: 0.7; }
@@ -481,6 +482,12 @@ h1, h2, h3 { line-height: 1.45; font-weight: var(--fw-bold); }
 }
 .badge-success { background: var(--success-soft); color: var(--success); }
 .card-media .badge-success { background: #ecfdf5; color: #047857; }
+.badge .icon { width: 13px; height: 13px; }
+.badge-featured { background: #fef3c7; color: #92400e; }
+.badge-free { background: #ede9fe; color: #5b21b6; }
+.badge-danger { background: var(--danger-soft); color: var(--danger); }
+.badge-plus { background: linear-gradient(135deg, #fde68a, #f59e0b); color: #451a03; }
+.badge-muted-soft { background: var(--surface-2); color: var(--text-2); }
 .badge-muted { background: #374151; color: #fff; }
 .badge-warning { background: var(--warning-soft); color: var(--warning); }
 .badge-accent { background: var(--primary-soft); color: var(--primary); }
@@ -682,6 +689,7 @@ h1, h2, h3 { line-height: 1.45; font-weight: var(--fw-bold); }
 .list-description { color: var(--text-2); font-size: 0.93rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .list-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 6px; }
 .list-card.is-booked { border-color: color-mix(in srgb, var(--warning) 35%, var(--border)); }
+.list-card.is-overdue { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
 @media (max-width: 600px) {
     .list-card, .list .skeleton { grid-template-columns: 1fr; }
     .list-media { aspect-ratio: 16 / 9; min-height: 0; }
@@ -691,7 +699,13 @@ h1, h2, h3 { line-height: 1.45; font-weight: var(--fw-bold); }
 
 /* ---------- Footer ---------- */
 .site-footer { border-top: 1px solid var(--border); background: var(--surface); padding-block: 28px; }
-.footer-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+.footer-inner { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px 24px; }
+.footer-brand { display: grid; gap: 6px; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.92rem; font-weight: var(--fw-medium); }
+.footer-links a { color: var(--text-2); }
+.footer-links a:hover { color: var(--primary); }
+.footer-note { grid-column: 1 / -1; padding-top: 14px; border-top: 1px dashed var(--border); max-width: 80ch; }
+@media (max-width: 640px) { .footer-inner { grid-template-columns: 1fr; } }
 
 /* ---------- Demo mode ---------- */
 .empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
@@ -709,3 +723,156 @@ h1, h2, h3 { line-height: 1.45; font-weight: var(--fw-bold); }
     background: var(--warning-soft); color: var(--warning); border-bottom: 1px solid var(--border);
 }
 .demo-banner .link-btn { color: inherit; text-decoration: underline; }
+
+/* ==========================================================================
+   الإعارة والتقييمات والخدمات
+   ========================================================================== */
+.price-free strong { color: #6d28d9; }
+:root[data-theme="dark"] .price-free strong { color: #c4b5fd; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .price-free strong { color: #c4b5fd; } }
+.card-deposit { font-size: 0.8rem; color: var(--text-3); }
+.card-owner { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-meta .rating { margin-inline-start: auto; }
+.plus-mark {
+    display: inline-block; padding: 0 6px; border-radius: 6px; font-size: 0.7rem; font-weight: var(--fw-bold); line-height: 1.6;
+    background: linear-gradient(135deg, #fde68a, #f59e0b); color: #451a03; direction: ltr;
+}
+.product-card.is-featured { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent), var(--shadow-sm); }
+
+.rating { display: inline-flex; align-items: center; gap: 3px; font-size: 0.85rem; font-weight: var(--fw-semibold); color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rating .rating-star { width: 14px; height: 14px; fill: #f59e0b; stroke: #f59e0b; }
+.rating-count { color: var(--text-3); font-weight: var(--fw-regular); }
+.rating-new { color: var(--text-3); font-weight: var(--fw-medium); font-size: 0.8rem; }
+
+/* تفاصيل المالك والتقييمات */
+.owner-box { display: grid; gap: 10px; padding: 14px; border-radius: var(--radius); background: var(--surface-2); }
+.owner-head { display: flex; align-items: center; gap: 10px; }
+.owner-head strong { margin-inline-end: 6px; }
+.owner-avatar { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-weight: var(--fw-bold); }
+.reviews { display: grid; gap: 10px; }
+.review { margin: 0; display: grid; gap: 2px; }
+.review-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.review blockquote { margin: 0; color: var(--text-2); font-size: 0.92rem; overflow-wrap: anywhere; }
+.stars { color: #f59e0b; letter-spacing: 1px; font-size: 0.95rem; direction: ltr; }
+.stars-off { color: var(--border-strong); }
+
+/* نموذج الحجز */
+.booking-form { gap: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.booking-title { font-size: 1.05rem; }
+.booking-summary { font-size: 0.9rem; color: var(--text-2); font-weight: var(--fw-medium); min-height: 1.5em; }
+.booking-form .field-row { grid-template-columns: 1fr 1fr; gap: 12px; }
+.booking-form input[type="date"] { min-height: 46px; }
+
+/* مربع الإقرار */
+.check { display: flex; align-items: flex-start; gap: 10px; font-size: 0.88rem; color: var(--text-2); line-height: 1.7; cursor: pointer; }
+.check input { flex-shrink: 0; width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary); cursor: pointer; }
+.check a { font-weight: var(--fw-semibold); }
+
+/* خيارات بطاقات (نوع العرض، الخدمة) */
+fieldset.field { border: 0; padding: 0; margin: 0; min-width: 0; }
+.choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.choice { position: relative; cursor: pointer; }
+.choice input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.choice-body {
+    display: grid; gap: 4px; height: 100%; padding: 14px 16px; border-radius: var(--radius);
+    border: 1.5px solid var(--border-strong); background: var(--surface); transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.choice-body .icon { color: var(--primary); width: 22px; height: 22px; }
+.choice-price { font-weight: var(--fw-bold); color: var(--primary); font-variant-numeric: tabular-nums; }
+.choice input:checked + .choice-body { border-color: var(--primary); background: var(--primary-soft); box-shadow: 0 0 0 1px var(--primary); }
+.choice input:focus-visible + .choice-body { box-shadow: var(--ring); }
+
+/* التنبيهات */
+.alerts { display: grid; gap: 10px; margin-bottom: 24px; }
+.alert {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--surface); font-weight: var(--fw-medium);
+}
+.alert p { flex: 1; min-width: 0; }
+.alert > .icon { width: 22px; height: 22px; }
+.alert-danger { background: var(--danger-soft); border-color: color-mix(in srgb, var(--danger) 30%, transparent); color: var(--danger); }
+.alert-warning { background: var(--warning-soft); border-color: color-mix(in srgb, var(--warning) 30%, transparent); color: var(--warning); }
+.alert-info > .icon { color: var(--primary); }
+.alert-review > .icon { color: #f59e0b; fill: #f59e0b; }
+@media (max-width: 560px) { .alert { flex-wrap: wrap; } .alert .btn { width: 100%; } }
+
+.booking-strip {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 12px; border-radius: var(--radius-sm);
+    background: var(--warning-soft); color: var(--text-2); font-size: 0.88rem;
+}
+.booking-strip.is-overdue { background: var(--danger-soft); }
+.booking-strip > .icon { width: 16px; height: 16px; color: var(--warning); }
+.profile-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 4px; }
+.link-small { font-size: 0.85rem; font-weight: var(--fw-semibold); }
+.btn-accent-soft { background: #fef3c7; color: #92400e; }
+.btn-accent-soft:hover:not(:disabled) { background: #fde68a; }
+
+/* تقييم بالنجوم (الترتيب 5←1 مع row-reverse حتى يعمل التلوين المتتالي) */
+.star-input { display: flex; flex-direction: row-reverse; justify-content: center; gap: 4px; direction: ltr; }
+.star-input label { cursor: pointer; font-size: 2.2rem; line-height: 1; color: var(--border-strong); transition: color 0.15s, transform 0.15s; }
+.star-input input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.star-input label:hover, .star-input label:hover ~ label,
+.star-input label:has(input:checked), .star-input label:has(input:checked) ~ label { color: #f59e0b; }
+.star-input label:has(input:focus-visible) { transform: scale(1.12); }
+.review-form, .checkout { padding: 28px 24px 24px; }
+.checkout-head { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.checkout-head h2 { font-size: 1.3rem; }
+.dialog-md { width: min(560px, calc(100% - 24px)); }
+
+.price-lines { display: grid; gap: 6px; margin: 0; padding: 14px; border-radius: var(--radius); background: var(--surface-2); font-size: 0.92rem; }
+.price-lines div { display: flex; justify-content: space-between; gap: 12px; }
+.price-lines dt { color: var(--text-2); }
+.price-lines dd { margin: 0; font-variant-numeric: tabular-nums; }
+.price-lines .price-total { padding-top: 6px; border-top: 1px dashed var(--border-strong); font-weight: var(--fw-bold); }
+.center-text { text-align: center; }
+
+/* مشترياتي */
+.order-card { display: flex; gap: 16px; align-items: flex-start; padding: 16px 20px; }
+.order-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: var(--primary-soft); color: var(--primary); }
+.order-body { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.order-amount strong { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+
+/* الخدمات والباقات */
+.eyebrow-soft { background: var(--primary-soft); border-color: transparent; color: var(--primary); }
+.eyebrow-soft .icon { color: var(--primary); }
+.page-head.center-text { display: grid; justify-items: center; gap: 10px; margin-bottom: 32px; }
+.page-head.center-text h1 { font-size: clamp(1.6rem, 3.5vw, 2.3rem); text-wrap: balance; }
+.lead-narrow { max-width: 60ch; }
+.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; }
+.plans-note { grid-column: 1 / -1; }
+.plan { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 28px 24px 24px; }
+.plan.is-highlight { border: 2px solid var(--primary); box-shadow: var(--shadow); }
+.plan-badge { position: absolute; top: -13px; inset-inline-start: 24px; padding: 2px 12px; border-radius: var(--radius-pill); background: var(--primary); color: var(--on-primary); font-size: 0.8rem; font-weight: var(--fw-semibold); }
+.plan-name { font-size: 1.15rem; }
+.plan-price strong { font-size: 2rem; font-weight: var(--fw-bold); color: var(--text); font-variant-numeric: tabular-nums; }
+.plan-features { list-style: none; padding: 0; display: grid; gap: 8px; flex: 1; }
+.plan-features li { display: flex; gap: 8px; align-items: flex-start; font-size: 0.93rem; }
+.plan-features .icon { width: 18px; height: 18px; margin-top: 3px; color: var(--success); }
+.plan-features li.is-off { color: var(--text-3); }
+.plan-features li.is-off .icon { color: var(--text-3); }
+@media (max-width: 900px) { .plans { grid-template-columns: 1fr; max-width: 480px; margin-inline: auto; } }
+.transparency { display: flex; gap: 16px; align-items: flex-start; padding: 24px; margin-block: 32px; }
+.transparency .auth-icon { flex-shrink: 0; margin: 0; }
+.transparency h2 { font-size: 1.2rem; margin-bottom: 6px; }
+.faq { display: grid; gap: 10px; }
+.faq h2 { font-size: 1.3rem; margin-bottom: 6px; }
+.faq details { padding: 14px 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.faq summary { cursor: pointer; font-weight: var(--fw-semibold); }
+.faq details p { margin-top: 8px; color: var(--text-2); }
+
+/* الصفحات القانونية */
+.legal { display: grid; gap: 22px; }
+.legal section { display: grid; gap: 8px; scroll-margin-top: calc(var(--header-h) + 16px); }
+.legal h2 { font-size: 1.2rem; }
+.legal h3 { font-size: 1rem; margin-top: 4px; }
+.legal p, .legal li { color: var(--text-2); max-width: 75ch; }
+.legal ul { padding-inline-start: 22px; display: grid; gap: 6px; }
+.legal strong { color: var(--text); }
+.legal-callout { padding: 16px 18px; border-radius: var(--radius); background: var(--warning-soft); border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent); line-height: 1.8; }
+
+/* نتيجة الدفع */
+.auth-icon.is-paid { background: var(--success-soft); color: var(--success); }
+.auth-icon.is-failed { background: var(--danger-soft); color: var(--danger); }
+#payment-result { display: grid; justify-items: center; gap: 10px; }
+.dialog-page { padding: 32px 24px 24px; }
+.dialog-page .container { padding: 0; }

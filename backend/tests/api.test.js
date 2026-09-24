@@ -18,6 +18,11 @@ const { signToken } = require('../middleware/auth');
 const User = require('../models/userModel');
 const Product = require('../models/productModel');
 const Booking = require('../models/bookingModel');
+const Review = require('../models/reviewModel');
+const Order = require('../models/orderModel');
+const moyasar = require('../payments/moyasarProvider');
+const { TERMS_VERSION, FREE_LISTING_LIMIT } = require('../../shared/business');
+const { todayIso, addDays } = require('../../shared/dates');
 
 const app = createApp();
 const HEADERS = { 'X-Requested-With': 'GeoSave' };
@@ -32,6 +37,7 @@ function query(value) {
     const q = {
         select: () => q,
         sort: () => q,
+        limit: () => q,
         populate: () => q,
         lean: async () => value,
         then: (resolve, reject) => Promise.resolve(value).then(resolve, reject),
@@ -117,6 +123,13 @@ describe('auth', () => {
         assert.equal(res.status, 400);
     });
 
+    test('register requires accepting the terms', async () => {
+        mock.method(User, 'exists', async () => null);
+        const res = await request(app).post('/api/auth/register').set(HEADERS)
+            .send({ name: 'Alice', email: 'alice@example.com', password: 'secret123', acceptTerms: 'yes' });
+        assert.equal(res.status, 400);
+    });
+
     test('register rejects weak passwords', async () => {
         const res = await request(app).post('/api/auth/register').set(HEADERS)
             .send({ name: 'Alice', email: 'alice@example.com', password: 'onlyletters' });
@@ -126,7 +139,7 @@ describe('auth', () => {
     test('register rejects duplicate email', async () => {
         mock.method(User, 'exists', async () => ({ _id: alice._id }));
         const res = await request(app).post('/api/auth/register').set(HEADERS)
-            .send({ name: 'Alice', email: 'ALICE@example.com', password: 'secret123' });
+            .send({ name: 'Alice', email: 'ALICE@example.com', password: 'secret123', acceptTerms: true });
         assert.equal(res.status, 409);
     });
 
@@ -138,9 +151,13 @@ describe('auth', () => {
             return { _id: new mongoose.Types.ObjectId(), role: 'user', ...doc };
         });
         const res = await request(app).post('/api/auth/register').set(HEADERS)
-            .send({ name: 'Alice', email: 'Alice@Example.com', password: 'secret123', role: 'admin' });
+            .send({ name: 'Alice', email: 'Alice@Example.com', password: 'secret123', role: 'admin', plan: 'plus', acceptTerms: true });
 
         assert.equal(res.status, 201);
+        assert.ok(saved.termsAcceptedAt instanceof Date, 'terms acceptance must be recorded');
+        assert.equal(saved.termsVersion, TERMS_VERSION);
+        assert.equal(saved.plan, undefined, 'plan must not be mass-assignable');
+        assert.equal(res.body.user.plan, 'free');
         assert.equal(saved.email, 'alice@example.com');
         assert.equal(saved.role, undefined, 'role must not be mass-assignable');
         assert.notEqual(saved.password, 'secret123');
@@ -222,56 +239,130 @@ describe('products', () => {
         assert.equal(projection.location, undefined);
     });
 
+    test('search filters free items and ranks featured listings first', async () => {
+        let pipeline;
+        mock.method(Product, 'aggregate', async (p) => {
+            pipeline = p;
+            return [];
+        });
+        const res = await request(app).get('/api/products?lat=24.7&lng=46.6&free=true');
+        assert.equal(res.status, 200);
+        assert.equal(pipeline[0].$geoNear.query.pricePerDay, 0);
+        assert.deepEqual(Object.keys(pipeline.find((stage) => stage.$sort).$sort), ['isFeatured', 'distance', '_id']);
+    });
+
     test('creating a product requires authentication', async () => {
         const res = await request(app).post('/api/products').set(HEADERS).field('name', 'Tent');
         assert.equal(res.status, 401);
     });
 
+    const productFields = (req, extra = {}) => {
+        const fields = {
+            name: 'Tent', description: 'A nice tent', offerType: 'rent', pricePerDay: '50', latitude: '24.7', longitude: '46.6',
+            phoneNumber: '0512345678', acceptTerms: 'true', ...extra,
+        };
+        Object.entries(fields).forEach(([key, value]) => { if (value !== undefined) req.field(key, value); });
+        return req;
+    };
+    const png = () => sharp({ create: { width: 20, height: 20, channels: 3, background: '#0f766e' } }).png().toBuffer();
+
     test('creating a product rejects non-image uploads', async () => {
-        const res = await request(app).post('/api/products').set(HEADERS).set('Cookie', cookieFor(alice))
-            .field('name', 'Tent').field('description', 'A nice tent').field('pricePerDay', '50')
-            .field('latitude', '24.7').field('longitude', '46.6').field('phoneNumber', '0512345678')
+        mock.method(Product, 'countDocuments', async () => 0);
+        const res = await productFields(request(app).post('/api/products').set(HEADERS).set('Cookie', cookieFor(alice)))
             .attach('image', Buffer.from('<script>alert(1)</script>'), { filename: 'x.png', contentType: 'image/png' });
         assert.equal(res.status, 400);
     });
 
+    test('creating a product requires the owner to accept the terms', async () => {
+        mock.method(Product, 'countDocuments', async () => 0);
+        const res = await productFields(request(app).post('/api/products').set(HEADERS).set('Cookie', cookieFor(alice)), { acceptTerms: undefined })
+            .attach('image', await png(), { filename: 'x.png', contentType: 'image/png' });
+        assert.equal(res.status, 400);
+    });
+
     test('creating a product re-encodes the image and takes the owner from the session', async () => {
-        const png = await sharp({ create: { width: 20, height: 20, channels: 3, background: '#0f766e' } }).png().toBuffer();
+        mock.method(Product, 'countDocuments', async () => 0);
         let saved;
         mock.method(Product, 'create', async (doc) => {
             saved = doc;
             return { _id: new mongoose.Types.ObjectId(), ...doc };
         });
 
-        const res = await request(app).post('/api/products').set(HEADERS).set('Cookie', cookieFor(alice))
-            .field('name', 'Tent').field('description', 'A nice tent').field('pricePerDay', '50')
-            .field('latitude', '24.7').field('longitude', '46.6').field('phoneNumber', '0512345678')
-            .field('owner', String(bob._id))
-            .attach('image', png, { filename: '../../evil.png', contentType: 'image/png' });
+        const res = await productFields(request(app).post('/api/products').set(HEADERS).set('Cookie', cookieFor(alice)), { owner: String(bob._id) })
+            .attach('image', await png(), { filename: '../../evil.png', contentType: 'image/png' });
 
         try {
             assert.equal(res.status, 201, JSON.stringify(res.body));
             assert.equal(String(saved.owner), String(alice._id));
             assert.equal(saved.phoneNumber, '966512345678');
+            assert.equal(saved.pricePerDay, 50);
             assert.deepEqual(saved.location.coordinates, [46.6, 24.7]);
             assert.match(saved.image, /^uploads\/[0-9a-f-]{36}\.webp$/);
+            assert.equal(saved.termsVersion, TERMS_VERSION);
             assert.ok(fs.existsSync(path.join(config.uploadDir, path.basename(saved.image))));
         } finally {
             if (saved) fs.rmSync(path.join(config.uploadDir, path.basename(saved.image)), { force: true });
         }
     });
 
-    test('only the owner or an admin can delete a product', async () => {
+    test('free lending ignores any price and stores deposit and max days', async () => {
+        mock.method(Product, 'countDocuments', async () => 0);
+        let saved;
+        mock.method(Product, 'create', async (doc) => {
+            saved = doc;
+            return { _id: new mongoose.Types.ObjectId(), ...doc };
+        });
+        const res = await productFields(request(app).post('/api/products').set(HEADERS).set('Cookie', cookieFor(alice)),
+            { offerType: 'free', pricePerDay: '999', deposit: '150', maxDays: '14' })
+            .attach('image', await png(), { filename: 'x.png', contentType: 'image/png' });
+        try {
+            assert.equal(res.status, 201, JSON.stringify(res.body));
+            assert.equal(saved.pricePerDay, 0);
+            assert.equal(saved.deposit, 150);
+            assert.equal(saved.maxDays, 14);
+        } finally {
+            if (saved) fs.rmSync(path.join(config.uploadDir, path.basename(saved.image)), { force: true });
+        }
+    });
+
+    test('the free plan is limited and Plus is unlimited', async () => {
+        mock.method(Product, 'countDocuments', async () => FREE_LISTING_LIMIT);
+        const limited = await productFields(request(app).post('/api/products').set(HEADERS).set('Cookie', cookieFor(alice)))
+            .attach('image', await png(), { filename: 'x.png', contentType: 'image/png' });
+        assert.equal(limited.status, 403);
+
+        const plusUser = { _id: new mongoose.Types.ObjectId(), name: 'Plus', email: 'plus@example.com', role: 'user', plan: 'plus', planUntil: new Date(Date.now() + 86400000) };
+        users.set(String(plusUser._id), plusUser);
+        let saved;
+        mock.method(Product, 'create', async (doc) => {
+            saved = doc;
+            return { _id: new mongoose.Types.ObjectId(), ...doc };
+        });
+        const allowed = await productFields(request(app).post('/api/products').set(HEADERS).set('Cookie', cookieFor(plusUser)))
+            .attach('image', await png(), { filename: 'x.png', contentType: 'image/png' });
+        try {
+            assert.equal(allowed.status, 201, JSON.stringify(allowed.body));
+        } finally {
+            if (saved) fs.rmSync(path.join(config.uploadDir, path.basename(saved.image)), { force: true });
+        }
+    });
+
+    test('only the owner or an admin can delete a product, and not during an active booking', async () => {
         const product = { _id: new mongoose.Types.ObjectId(), owner: alice._id, image: 'uploads/missing.webp' };
         mock.method(Product, 'findById', () => query(product));
         const deleteOne = mock.method(Product, 'deleteOne', async () => ({ deletedCount: 1 }));
         mock.method(Booking, 'deleteMany', async () => ({ deletedCount: 0 }));
+        let activeBooking = null;
+        mock.method(Booking, 'exists', async () => activeBooking);
 
         const url = `/api/products/${product._id}`;
         assert.equal((await request(app).delete(url).set(HEADERS).set('Cookie', cookieFor(bob))).status, 403);
         assert.equal(deleteOne.mock.callCount(), 0);
-        assert.equal((await request(app).delete(url).set(HEADERS).set('Cookie', cookieFor(alice))).status, 200);
+        activeBooking = { _id: new mongoose.Types.ObjectId() };
+        assert.equal((await request(app).delete(url).set(HEADERS).set('Cookie', cookieFor(alice))).status, 409);
         assert.equal((await request(app).delete(url).set(HEADERS).set('Cookie', cookieFor(admin))).status, 200);
+        activeBooking = null;
+        assert.equal((await request(app).delete(url).set(HEADERS).set('Cookie', cookieFor(alice))).status, 200);
     });
 
     test('invalid ids are rejected', async () => {
@@ -282,33 +373,49 @@ describe('products', () => {
 
 describe('bookings', () => {
     const productId = new mongoose.Types.ObjectId();
+    const today = todayIso();
+    const bookingBody = (extra = {}) => ({ productId: String(productId), startDate: today, endDate: addDays(today, 1), acceptTerms: true, ...extra });
+    const available = { _id: productId, owner: alice._id, status: 'available', maxDays: 3 };
 
     test('requires authentication', async () => {
-        assert.equal((await request(app).post('/api/bookings').set(HEADERS).send({ productId: String(productId) })).status, 401);
-        assert.equal((await request(app).get('/api/bookings/mine')).status, 401);
+        assert.equal((await request(app).post('/api/bookings').set(HEADERS).send(bookingBody())).status, 401);
+        assert.equal((await request(app).get('/api/bookings/overview')).status, 401);
+    });
+
+    test('requires the borrower to accept the liability terms', async () => {
+        const res = await request(app).post('/api/bookings').set(HEADERS).set('Cookie', cookieFor(bob)).send(bookingBody({ acceptTerms: undefined }));
+        assert.equal(res.status, 400);
+    });
+
+    test('validates the borrowing period', async () => {
+        mock.method(Product, 'findById', () => query(available));
+        const send = (body) => request(app).post('/api/bookings').set(HEADERS).set('Cookie', cookieFor(bob)).send(body);
+        assert.equal((await send(bookingBody({ startDate: addDays(today, -1) }))).status, 400, 'past start');
+        assert.equal((await send(bookingBody({ endDate: addDays(today, -1) }))).status, 400, 'end before start');
+        assert.equal((await send(bookingBody({ endDate: addDays(today, 3) }))).status, 400, 'longer than maxDays');
+        assert.equal((await send(bookingBody({ startDate: addDays(today, 61), endDate: addDays(today, 61) }))).status, 400, 'too far ahead');
+        assert.equal((await send(bookingBody({ startDate: '2026-02-30' }))).status, 400, 'invalid date');
     });
 
     test('cannot book your own product', async () => {
-        mock.method(Product, 'findOneAndUpdate', () => query(null));
-        mock.method(Product, 'findById', () => query({ _id: productId, owner: alice._id, status: 'available' }));
-        const res = await request(app).post('/api/bookings').set(HEADERS).set('Cookie', cookieFor(alice))
-            .send({ productId: String(productId) });
+        mock.method(Product, 'findById', () => query(available));
+        const res = await request(app).post('/api/bookings').set(HEADERS).set('Cookie', cookieFor(alice)).send(bookingBody());
         assert.equal(res.status, 400);
     });
 
     test('cannot double-book', async () => {
+        mock.method(Product, 'findById', () => query(available));
         mock.method(Product, 'findOneAndUpdate', () => query(null));
-        mock.method(Product, 'findById', () => query({ _id: productId, owner: alice._id, status: 'booked' }));
-        const res = await request(app).post('/api/bookings').set(HEADERS).set('Cookie', cookieFor(bob))
-            .send({ productId: String(productId) });
+        const res = await request(app).post('/api/bookings').set(HEADERS).set('Cookie', cookieFor(bob)).send(bookingBody());
         assert.equal(res.status, 409);
     });
 
-    test('booking uses the session user and an atomic status update', async () => {
+    test('booking uses the session user, records the terms and updates atomically', async () => {
+        mock.method(Product, 'findById', () => query(available));
         let filter;
         mock.method(Product, 'findOneAndUpdate', (f) => {
             filter = f;
-            return query({ _id: productId, owner: alice._id, status: 'booked' });
+            return query({ ...available, status: 'booked' });
         });
         let created;
         mock.method(Booking, 'create', async (doc) => {
@@ -316,17 +423,19 @@ describe('bookings', () => {
             return { _id: new mongoose.Types.ObjectId(), ...doc };
         });
         const res = await request(app).post('/api/bookings').set(HEADERS).set('Cookie', cookieFor(bob))
-            .send({ productId: String(productId), userId: String(alice._id) });
-        assert.equal(res.status, 201);
+            .send(bookingBody({ userId: String(alice._id) }));
+        assert.equal(res.status, 201, JSON.stringify(res.body));
         assert.equal(String(created.userId), String(bob._id));
+        assert.equal(String(created.ownerId), String(alice._id));
+        assert.equal(created.startDate.toISOString().slice(0, 10), today);
+        assert.equal(created.termsVersion, TERMS_VERSION);
         assert.equal(filter.status, 'available');
         assert.deepEqual(filter.owner, { $ne: String(bob._id) });
     });
 
-    test('a stranger cannot cancel someone else\'s booking', async () => {
-        const booking = { _id: new mongoose.Types.ObjectId(), productId, userId: bob._id };
+    test('a stranger cannot cancel someone else\'s booking, and finished bookings cannot be cancelled', async () => {
+        const booking = { _id: new mongoose.Types.ObjectId(), productId, userId: bob._id, ownerId: alice._id, status: 'active' };
         mock.method(Booking, 'findById', () => query(booking));
-        mock.method(Product, 'findById', () => query({ _id: productId, owner: alice._id }));
         const deleteOne = mock.method(Booking, 'deleteOne', async () => ({ deletedCount: 1 }));
         mock.method(Product, 'updateOne', async () => ({ modifiedCount: 1 }));
 
@@ -338,5 +447,147 @@ describe('bookings', () => {
         assert.equal(deleteOne.mock.callCount(), 0);
         assert.equal((await request(app).delete(url).set(HEADERS).set('Cookie', cookieFor(bob))).status, 200);
         assert.equal((await request(app).delete(url).set(HEADERS).set('Cookie', cookieFor(alice))).status, 200);
+        booking.status = 'returned';
+        assert.equal((await request(app).delete(url).set(HEADERS).set('Cookie', cookieFor(bob))).status, 409);
+    });
+
+    test('only the owner can confirm the return', async () => {
+        const booking = { _id: new mongoose.Types.ObjectId(), productId, userId: bob._id, ownerId: alice._id, status: 'active' };
+        mock.method(Booking, 'findById', () => query(booking));
+        mock.method(Booking, 'findOneAndUpdate', () => query({ ...booking, status: 'returned' }));
+        const productUpdate = mock.method(Product, 'updateOne', async () => ({ modifiedCount: 1 }));
+        const url = `/api/bookings/${booking._id}/return`;
+        assert.equal((await request(app).post(url).set(HEADERS).set('Cookie', cookieFor(bob))).status, 403);
+        assert.equal((await request(app).post(url).set(HEADERS).set('Cookie', cookieFor(alice))).status, 200);
+        assert.deepEqual(productUpdate.mock.calls[0].arguments[1], { $set: { status: 'available' } });
+    });
+});
+
+describe('reviews', () => {
+    const booking = { _id: new mongoose.Types.ObjectId(), productId: new mongoose.Types.ObjectId(), userId: bob._id, ownerId: alice._id, status: 'returned' };
+    const url = `/api/bookings/${booking._id}/review`;
+
+    test('only participants can review, only after the return, once, with 1-5 stars', async () => {
+        const current = { ...booking };
+        mock.method(Booking, 'findById', () => query(current));
+        let reviewDoc;
+        const createReview = mock.method(Review, 'create', async (doc) => {
+            if (reviewDoc) {
+                const error = new Error('duplicate');
+                error.code = 11000;
+                throw error;
+            }
+            reviewDoc = doc;
+            return doc;
+        });
+        const ratingUpdate = mock.method(User, 'updateOne', async () => ({ modifiedCount: 1 }));
+        const stranger = { _id: new mongoose.Types.ObjectId(), name: 'Eve', email: 'eve2@example.com', role: 'user' };
+        users.set(String(stranger._id), stranger);
+        const send = (user, body) => request(app).post(url).set(HEADERS).set('Cookie', cookieFor(user)).send(body);
+
+        assert.equal((await send(bob, { rating: 6 })).status, 400);
+        assert.equal((await send(bob, { rating: 4.5 })).status, 400);
+        assert.equal((await send(stranger, { rating: 5 })).status, 403);
+        current.status = 'active';
+        assert.equal((await send(bob, { rating: 5 })).status, 409);
+        current.status = 'returned';
+
+        assert.equal((await send(bob, { rating: 5, comment: 'ممتاز' })).status, 201);
+        assert.equal(String(reviewDoc.reviewee), String(alice._id));
+        assert.equal(reviewDoc.revieweeRole, 'owner');
+        assert.deepEqual(ratingUpdate.mock.calls[0].arguments[1], { $inc: { ratingSum: 5, ratingCount: 1 } });
+        assert.equal((await send(bob, { rating: 5 })).status, 409, 'duplicate review');
+        assert.equal(createReview.mock.callCount(), 2);
+        assert.equal(ratingUpdate.mock.callCount(), 1, 'rating counted once');
+    });
+
+    test('public profile shows first names only', async () => {
+        const target = { _id: alice._id, name: 'Alice', ratingSum: 9, ratingCount: 2, createdAt: new Date() };
+        mock.method(User, 'findById', () => query(target));
+        mock.method(Review, 'find', () => query([{ _id: 'r1', rating: 5, comment: 'x', revieweeRole: 'owner', reviewer: { name: 'Bob Smith' }, createdAt: new Date() }]));
+        const res = await request(app).get(`/api/users/${alice._id}/reviews`);
+        assert.equal(res.status, 200);
+        assert.equal(res.body.user.rating, 4.5);
+        assert.equal(res.body.reviews[0].reviewerName, 'Bob');
+        assert.equal(res.body.user.email, undefined);
+    });
+});
+
+describe('digital services', () => {
+    test('catalog shows VAT-inclusive prices', async () => {
+        const res = await request(app).get('/api/services');
+        assert.equal(res.status, 200);
+        const featured = res.body.services.find((service) => service.key === 'featured_7');
+        assert.equal(featured.total, 9);
+        assert.equal(Math.round((featured.net + featured.vat) * 100), 900);
+        assert.equal(res.body.paymentsEnabled, true);
+    });
+
+    test('checkout validates the service and ownership', async () => {
+        const send = (body, user = alice) => request(app).post('/api/services/checkout').set(HEADERS).set('Cookie', cookieFor(user)).send(body);
+        assert.equal((await request(app).post('/api/services/checkout').set(HEADERS).send({ service: 'plus_30' })).status, 401);
+        assert.equal((await send({ service: 'free_money' })).status, 400);
+        assert.equal((await send({ service: '__proto__' })).status, 400);
+        mock.method(Product, 'findById', () => query({ _id: new mongoose.Types.ObjectId(), owner: bob._id, name: 'x' }));
+        assert.equal((await send({ service: 'featured_7', productId: String(new mongoose.Types.ObjectId()) })).status, 403);
+    });
+
+    test('the server sets the price and applies the service once', async () => {
+        const productId = new mongoose.Types.ObjectId();
+        mock.method(Product, 'findById', () => query({ _id: productId, owner: alice._id, name: 'Tent', featuredUntil: null }));
+        let order;
+        mock.method(Order, 'create', async (doc) => {
+            order = { _id: new mongoose.Types.ObjectId(), ...doc };
+            return order;
+        });
+        mock.method(Order, 'updateOne', async () => ({ modifiedCount: 1 }));
+        mock.method(Order, 'findOneAndUpdate', () => query({ ...order, status: 'paid', appliedAt: new Date() }));
+        const productUpdate = mock.method(Product, 'updateOne', async () => ({ modifiedCount: 1 }));
+
+        const res = await request(app).post('/api/services/checkout').set(HEADERS).set('Cookie', cookieFor(alice))
+            .send({ service: 'featured_30', productId: String(productId), amount: 0.01 });
+        assert.equal(res.status, 201, JSON.stringify(res.body));
+        assert.equal(res.body.status, 'paid');
+        assert.equal(order.amount, 29, 'client-supplied amount is ignored');
+        assert.equal(order.vatAmount, 3.78);
+        const featuredUntil = productUpdate.mock.calls[0].arguments[1].$set.featuredUntil;
+        const days = Math.round((featuredUntil.getTime() - Date.now()) / 86400000);
+        assert.equal(days, 30);
+    });
+
+    test('Plus extends the plan', async () => {
+        let order;
+        mock.method(Order, 'create', async (doc) => {
+            order = { _id: new mongoose.Types.ObjectId(), ...doc };
+            return order;
+        });
+        mock.method(Order, 'updateOne', async () => ({ modifiedCount: 1 }));
+        mock.method(Order, 'findOneAndUpdate', () => query({ ...order, status: 'paid', appliedAt: new Date() }));
+        const userUpdate = mock.method(User, 'updateOne', async () => ({ modifiedCount: 1 }));
+        const res = await request(app).post('/api/services/checkout').set(HEADERS).set('Cookie', cookieFor(bob)).send({ service: 'plus_30' });
+        assert.equal(res.status, 201);
+        assert.equal(userUpdate.mock.calls[0].arguments[1].$set.plan, 'plus');
+    });
+
+    test('orders can only be verified by their owner', async () => {
+        mock.method(Order, 'findOne', () => query(null));
+        const res = await request(app).post(`/api/services/orders/${new mongoose.Types.ObjectId()}/verify`).set(HEADERS).set('Cookie', cookieFor(bob));
+        assert.equal(res.status, 404);
+    });
+
+    test('Moyasar verification requires paid status with the exact amount and currency', async () => {
+        const order = { _id: new mongoose.Types.ObjectId(), amount: 19, currency: 'SAR', providerRef: 'inv_1' };
+        const respond = (invoice) => mock.method(globalThis, 'fetch', async () => ({ ok: true, json: async () => invoice }));
+        respond({ status: 'paid', amount: 1900, currency: 'SAR', metadata: { order_id: String(order._id) } });
+        assert.equal((await moyasar.verify(order)).paid, true);
+        mock.restoreAll();
+        respond({ status: 'paid', amount: 100, currency: 'SAR' });
+        assert.equal((await moyasar.verify(order)).paid, false, 'amount mismatch');
+        mock.restoreAll();
+        respond({ status: 'paid', amount: 1900, currency: 'SAR', metadata: { order_id: 'another' } });
+        assert.equal((await moyasar.verify(order)).paid, false, 'order mismatch');
+        mock.restoreAll();
+        respond({ status: 'initiated', amount: 1900, currency: 'SAR' });
+        assert.equal((await moyasar.verify(order)).paid, false);
     });
 });

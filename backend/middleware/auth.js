@@ -6,6 +6,7 @@ const config = require('../config');
 const User = require('../models/userModel');
 const HttpError = require('../utils/httpError');
 const asyncHandler = require('../utils/asyncHandler');
+const { isPlusActive } = require('../../shared/business');
 
 const JWT_ALGORITHM = 'HS256';
 
@@ -36,6 +37,21 @@ function clearAuthCookie(res) {
     res.clearCookie(config.authCookieName, cookieOptions());
 }
 
+/** بيانات المستخدم المتاحة للطلب وللواجهة (بدون أي حقول حساسة) */
+function toSessionUser(user) {
+    const plus = isPlusActive(user);
+    return {
+        id: String(user._id),
+        name: user.name,
+        email: user.email,
+        role: user.role || 'user',
+        plan: plus ? 'plus' : 'free',
+        planUntil: plus ? user.planUntil : null,
+        rating: user.ratingCount ? Math.round((user.ratingSum / user.ratingCount) * 10) / 10 : null,
+        ratingCount: user.ratingCount || 0,
+    };
+}
+
 async function resolveUser(req) {
     const token = req.cookies?.[config.authCookieName];
     if (!token) return null;
@@ -58,7 +74,7 @@ const authenticate = asyncHandler(async (req, res, next) => {
         clearAuthCookie(res);
         throw new HttpError(401, 'يجب تسجيل الدخول أولاً.');
     }
-    req.user = { id: String(user._id), name: user.name, email: user.email, role: user.role || 'user' };
+    req.user = toSessionUser(user);
     next();
 });
 
@@ -66,9 +82,9 @@ const authenticate = asyncHandler(async (req, res, next) => {
 const optionalAuth = asyncHandler(async (req, _res, next) => {
     const user = await resolveUser(req);
     if (user) {
-        req.user = { id: String(user._id), name: user.name, email: user.email, role: user.role || 'user' };
+        req.user = toSessionUser(user);
     }
     next();
 });
 
-module.exports = { authenticate, optionalAuth, setAuthCookie, clearAuthCookie, signToken };
+module.exports = { authenticate, optionalAuth, setAuthCookie, clearAuthCookie, signToken, toSessionUser };
